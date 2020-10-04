@@ -32,7 +32,7 @@ func GetMeetings(w http.ResponseWriter, r *http.Request) {
 
 	meets := make([]MeetCard, len(MeetCards))
 	i := 0
-	for  _, value := range MeetCards {
+	for _, value := range MeetCards {
 		meets[i] = value
 		i++
 	}
@@ -92,6 +92,14 @@ func EditUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	UserProfiles[userId] = buf
+	UserCards[userId] = UserCard{
+		CardId:       userId,
+		Name:         UserProfiles[userId].Name,
+		ImgSrc:       UserProfiles[userId].ImgSrc,
+		Job:          UserProfiles[userId].Job,
+		Interestings: []string{UserProfiles[userId].Interestings},
+		Skills:       []string{UserProfiles[userId].Skills},
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -112,7 +120,7 @@ func GetUserId(w http.ResponseWriter, r *http.Request) {
 	WriteJson(w, UserId{uId})
 }
 
-func LogIn(w http.ResponseWriter, r *http.Request)  {
+func LogIn(w http.ResponseWriter, r *http.Request) {
 	log.Println("Login")
 
 	var userData LogPassPair
@@ -128,16 +136,16 @@ func LogIn(w http.ResponseWriter, r *http.Request)  {
 	}
 	token := uuid.New()
 	cookie := http.Cookie{
-		Name:       "authToken",
-		Value:      token,
-		Expires:    time.Now().Add(30 * 24 * time.Hour),
+		Name:    "authToken",
+		Value:   token,
+		Expires: time.Now().Add(30 * 24 * time.Hour),
 	}
 	http.SetCookie(w, &cookie)
 	Sessions[token] = credData.Id
 	w.WriteHeader(http.StatusOK)
 }
 
-func SignOut(w http.ResponseWriter, r *http.Request)  {
+func SignOut(w http.ResponseWriter, r *http.Request) {
 	log.Println("SignOut")
 	session, err := r.Cookie("authToken")
 	if err != nil {
@@ -147,15 +155,15 @@ func SignOut(w http.ResponseWriter, r *http.Request)  {
 	delete(Sessions, session.Value)
 	expire := time.Now().AddDate(0, 0, -1)
 	cookie := http.Cookie{
-		Name:       "authToken",
-		Value:      session.Value,
-		Expires:    expire,
+		Name:    "authToken",
+		Value:   session.Value,
+		Expires: expire,
 	}
 	http.SetCookie(w, &cookie)
 	w.WriteHeader(http.StatusOK)
 }
 
-func SignUp(w http.ResponseWriter, r *http.Request)  {
+func SignUp(w http.ResponseWriter, r *http.Request) {
 	log.Println("SignUp")
 	var userData LogPassPair
 	err := json.NewDecoder(r.Body).Decode(&userData)
@@ -169,15 +177,19 @@ func SignUp(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 	newInd := uint(len(UserProfiles))
-	for ;; newInd++ {
+	for ; ; newInd++ {
 		_, existsProfile := UserProfiles[newInd]
 		_, existsCard := UserCards[newInd]
 		if !existsProfile && !existsCard {
 			break
 		}
 	}
-	UserProfiles[newInd] = UserProfile{Name: "NoName", ImgSrc: "assets/luckash.jpeg"}
-	UserCards[newInd] = UserCard{CardId: newInd, ImgSrc: "assets/luckash.jpeg" }
+	// TODO: Single structure
+	UserProfiles[newInd] = UserProfile{Name: "NoName", ImgSrc: "assets/luckash.jpeg", Meetings: []Meeting{}}
+	UserCards[newInd] = UserCard{CardId: newInd, Name: "NoName", ImgSrc: "assets/luckash.jpeg",
+		Interestings: []string{},
+		Skills:       []string{},
+	}
 	CredStorage[userData.Login] = Credentials{
 		Id:       newInd,
 		Login:    userData.Login,
@@ -188,7 +200,7 @@ func SignUp(w http.ResponseWriter, r *http.Request)  {
 
 func EditOnSignUp(w http.ResponseWriter, r *http.Request) {
 	log.Println("EditOnSignUp")
-
+	// TODO: Still no JSON
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -212,7 +224,7 @@ func main() {
 	}
 
 	log.Println("Launching at port " + port)
-	err := http.ListenAndServe(":"+ port, r)
+	err := http.ListenAndServe(":"+port, r)
 	if err != nil {
 		log.Fatal("Unable to launch server: ", err)
 	}

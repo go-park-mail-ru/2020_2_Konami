@@ -61,8 +61,8 @@ var UserCards = map[uint]UserCard{
 		Name:         "Александр",
 		ImgSrc:       "assets/luckash.jpeg",
 		Job:          "Главный чекист КГБ",
-		Interestings: []string{"Картофель", "Хоккей"},
-		Skills:       []string{"Разгон митингов", "Сбор урожая"},
+		Interestings: []string{"Картофель"},
+		Skills:       []string{"Разгон митингов"},
 	},
 }
 
@@ -100,24 +100,8 @@ var UserProfiles = map[uint]UserProfile{
 				Text:   "Александр Лукашенко",
 			},
 		},
-		Interestings: `
-                Lorem ipsum dolor sit amet, 
-                consectetur adipiscing elit, sed 
-                do eiusmod tempor incididunt ut 
-                labore et dolore magna aliqua. 
-                Ut enim ad minim veniam, quis 
-                nostrud exercitation ullamco 
-                laboris nisi ut aliquip ex ea 
-                commodo consequat. Duis aute 
-                irure dolor in reprehenderit 
-                in voluptate velit esse cillum 
-        `,
-		Skills: `Lorem ipsum dolor sit amet, 
-                consectetur adipiscing elit, sed 
-                do eiusmod tempor incididunt ut 
-                labore et dolore magna aliqua. 
-                Ut enim ad minim veniam, quis 
-                nostrud exercitation ullamco`,
+		Interestings: `Картофель`,
+		Skills: `Разгон митингов`,
 		Education: "МГТУ им. Н. Э. Баумана до 2010",
 		Job:       "MAIL GROUP до 2008",
 		Aims:      "Хочу от жизни всего",
