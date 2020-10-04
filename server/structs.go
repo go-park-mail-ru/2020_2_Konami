@@ -48,3 +48,8 @@ type LogPwd struct {
 	Pwd 	string `json:"pwd"`
 }
 
+type LogPwdId struct {
+	Login 	string `json:"login"`
+	Pwd 	string `json:"pwd"`
+	Id		string `json:"id"`
+}

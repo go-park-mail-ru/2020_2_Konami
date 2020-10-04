@@ -12,8 +12,8 @@ import (
 
 const cardsOnPage = 3
 var mapUser map[int]UserProfile
-var mapSession map[string]int
-var mapLoginPwd map[string]string
+var mapSession map[string]string
+var mapLoginPwd map[string]LogPwdId
 var UserCards []userCard
 var MeetingCards []meetCard
 
@@ -42,7 +42,7 @@ func editUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	userId, ok := mapSession[session.Value]
+	login, ok := mapSession[session.Value]
 	if !ok {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
@@ -55,7 +55,7 @@ func editUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(userId, change.Field, change.Text)
+	fmt.Println(login, change.Field, change.Text)
 	//ДОДЕЛАТЬ
 }
 
@@ -110,10 +110,12 @@ func signIn(w http.ResponseWriter, r *http.Request)  {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if mapLoginPwd[userData.Login] != userData.Pwd {
+	if mapLoginPwd[userData.Login].Pwd != userData.Pwd {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
+	user := mapLoginPwd[userData.Login]
 
 	token := uuid.New()
 	expire := time.Now().Add(30 * 24 * time.Hour)
@@ -123,6 +125,7 @@ func signIn(w http.ResponseWriter, r *http.Request)  {
 		Expires:    expire,
 	}
 	http.SetCookie(w, &cookie)
+	mapSession[token] = user.Login
 	w.WriteHeader(http.StatusOK)
 }
 
