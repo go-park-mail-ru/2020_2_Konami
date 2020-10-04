@@ -1,10 +1,5 @@
 package main
 
-import (
-	"github.com/gorilla/mux"
-	"net/http"
-)
-
 type UserProfile struct {
 	ImgSrc    string 	`json:"img_src"`
 	Name      string 	`json:"name"`
@@ -48,47 +43,8 @@ type userChanges struct {
 	Text 		string	`json:"text"`
 }
 
-
-
-
-
-
-
-
-func register(w http.ResponseWriter, r *http.Request)  {
-	userLogin, err := mux.Vars(r)["login"]
-	if !err {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	userPassword, err := mux.Vars(r)["password"]
-	if !err {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	mapLoginPwd[userLogin] = userPassword
-	w.WriteHeader(http.StatusOK)
-}
-
-func login(w http.ResponseWriter, r *http.Request)  {
-	userLogin, err := mux.Vars(r)["login"]
-	if !err {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	userPassword, err := mux.Vars(r)["password"]
-	if !err {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if userPassword == mapLoginPwd[userLogin] {
-		w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusUnauthorized)
-	}
+type LogPwd struct {
+	Login 	string `json:"login"`
+	Pwd 	string `json:"pwd"`
 }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/pborman/uuid"
 	"net/http"
 	"strconv"
 	"time"
@@ -103,10 +104,42 @@ func getMeetings(w http.ResponseWriter, r *http.Request) {
 }
 
 func signIn(w http.ResponseWriter, r *http.Request)  {
+	var userData LogPwd
+	err := json.NewDecoder(r.Body).Decode(&userData)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if mapLoginPwd[userData.Login] != userData.Pwd {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	token := uuid.New()
+	expire := time.Now().Add(30 * 24 * time.Hour)
+	cookie := http.Cookie{
+		Name:       "authToken",
+		Value:      token,
+		Expires:    expire,
+	}
+	http.SetCookie(w, &cookie)
 	w.WriteHeader(http.StatusOK)
 }
 
 func signOut(w http.ResponseWriter, r *http.Request)  {
+	session, er := r.Cookie("authToken")
+	if er != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	delete(mapSession, session.Value)
+	expire := time.Now().Add(-24 * time.Hour)
+	cookie := http.Cookie{
+		Name:       "authToken",
+		Value:      session.Value,
+		Expires:    expire,
+	}
+	http.SetCookie(w, &cookie)
 	w.WriteHeader(http.StatusOK)
 }
 
