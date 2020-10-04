@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	"log"
 	"net/http"
+	"os"
 	"path"
 	"strconv"
 	"time"
@@ -26,8 +26,9 @@ func WriteError(w http.ResponseWriter, msg string, responseCode int) {
 
 func GetMeetings(w http.ResponseWriter, r *http.Request) {
 	pageNum := r.URL.Query().Get("pageNum")
-	fmt.Println("Get meetings")
-	fmt.Println(pageNum)
+
+	log.Println("Get meetings")
+	log.Println(pageNum)
 
 	meets := make([]MeetCard, len(MeetCards))
 	i := 0
@@ -41,8 +42,8 @@ func GetMeetings(w http.ResponseWriter, r *http.Request) {
 func GetPeople(w http.ResponseWriter, r *http.Request) {
 	pageNum := r.URL.Query().Get("pageNum")
 
-	fmt.Println("Get people")
-	fmt.Println(pageNum)
+	log.Println("Get people")
+	log.Println(pageNum)
 
 	var users []UserCard
 	for _, v := range UserCards {
@@ -57,8 +58,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, "user id not found", http.StatusNotFound)
 		return
 	}
-	fmt.Println("Get person")
-	fmt.Println(userId)
+	log.Printf("Get person %d\n", userId)
+
 	profile, ok := UserProfiles[uint(userId)]
 	if !ok {
 		WriteError(w, "profile not found", http.StatusNotFound)
@@ -68,6 +69,8 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func EditUser(w http.ResponseWriter, r *http.Request) {
+	log.Println("Edit user")
+
 	session, err := r.Cookie("authToken")
 	if err != nil {
 		WriteError(w, "client unauthorized", http.StatusUnauthorized)
@@ -93,6 +96,8 @@ func EditUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserId(w http.ResponseWriter, r *http.Request) {
+	log.Println("Get user id")
+
 	session, err := r.Cookie("authToken")
 	if err != nil {
 		WriteError(w, "client unauthorized", http.StatusUnauthorized)
@@ -108,6 +113,8 @@ func GetUserId(w http.ResponseWriter, r *http.Request) {
 }
 
 func LogIn(w http.ResponseWriter, r *http.Request)  {
+	log.Println("Login")
+
 	var userData LogPassPair
 	err := json.NewDecoder(r.Body).Decode(&userData)
 	if err != nil {
@@ -131,8 +138,9 @@ func LogIn(w http.ResponseWriter, r *http.Request)  {
 }
 
 func SignOut(w http.ResponseWriter, r *http.Request)  {
+	log.Println("SignOut")
 	session, err := r.Cookie("authToken")
-	if err == nil {
+	if err != nil {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -148,6 +156,7 @@ func SignOut(w http.ResponseWriter, r *http.Request)  {
 }
 
 func SignUp(w http.ResponseWriter, r *http.Request)  {
+	log.Println("SignUp")
 	var userData LogPassPair
 	err := json.NewDecoder(r.Body).Decode(&userData)
 	if err != nil {
@@ -167,7 +176,7 @@ func SignUp(w http.ResponseWriter, r *http.Request)  {
 			break
 		}
 	}
-	UserProfiles[newInd] = UserProfile{}
+	UserProfiles[newInd] = UserProfile{Name: "NoName", ImgSrc: "assets/luckash.jpeg"}
 	UserCards[newInd] = UserCard{CardId: newInd, ImgSrc: "assets/luckash.jpeg" }
 	CredStorage[userData.Login] = Credentials{
 		Id:       newInd,
@@ -178,6 +187,8 @@ func SignUp(w http.ResponseWriter, r *http.Request)  {
 }
 
 func EditOnSignUp(w http.ResponseWriter, r *http.Request) {
+	log.Println("EditOnSignUp")
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -195,8 +206,13 @@ func main() {
 
 	r.PathPrefix("/").HandlerFunc(serveStatic)
 
-	fmt.Println("Launching at port 8080")
-	err := http.ListenAndServe(":8080", r)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Println("Launching at port " + port)
+	err := http.ListenAndServe(":"+ port, r)
 	if err != nil {
 		log.Fatal("Unable to launch server: ", err)
 	}
