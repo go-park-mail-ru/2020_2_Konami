@@ -1,75 +1,93 @@
 package main
 
-type UserCard struct {
-	CardId       uint      `json:"cardId"`
-	Name         string   `json:"name"`
-	ImgSrc       string   `json:"imgSrc"`
-	Job          string   `json:"job"`
-	Interestings []string `json:"interestings"`
-	Skills       []string `json:"skills"`
+type User struct {
+	Id           int        `json:"id"`
+	Name         string     `json:"name"`
+	Gender       string     `json:"gender"`
+	City         string     `json:"city"`
+	Email        string     `json:"email"`
+	Telegram     string     `json:"telegram"`
+	Vk           string     `json:"vk"`
+	Education    string     `json:"education"`
+	Job          string     `json:"job"`
+	ImgPath      string     `json:"imgPath"`
+	Aims         string     `json:"aims"`
+	InterestTags []string   `json:"interestTags"`
+	Interests    string     `json:"interests"`
+	SkillTags    []string   `json:"skillTags"`
+	Skills       string     `json:"skills"`
+	Meetings     []*Meeting `json:"meetings"`
 }
 
-type MeetCard struct {
-	CardId uint      `json:"cardId"`
+type Meeting struct {
+	Id     int      `json:"id"`
 	Title  string   `json:"title"`
 	Text   string   `json:"text"`
 	ImgSrc string   `json:"imgSrc"`
-	Labels []string `json:"labels"`
+	Tags   []string `json:"tags"`
 	Place  string   `json:"place"`
 	Date   string   `json:"date"`
 }
 
-type Meeting struct {
-	ImgSrc string `json:"imgSrc"`
-	Text   string `json:"text"`
-}
-
-type UserProfile struct {
-	ImgSrc       string    `json:"imgSrc"`
-	Name         string    `json:"name"`
-	City         string    `json:"city"`
-	Telegram     string    `json:"telegram"`
-	Vk           string    `json:"vk"`
-	Meetings     []Meeting `json:"meetings"`
-	Interestings string    `json:"interestings"`
-	Skills       string    `json:"skills"`
-	Education    string    `json:"education"`
-	Job          string    `json:"job"`
-	Aims         string    `json:"aims"`
+type UserUpdate struct {
+	Name         string     `json:"name"`
+	Gender       string     `json:"gender"`
+	City         string     `json:"city"`
+	Email        string     `json:"email"`
+	Telegram     string     `json:"telegram"`
+	Vk           string     `json:"vk"`
+	Education    string     `json:"education"`
+	Job          string     `json:"job"`
+	Aims         string     `json:"aims"`
+	InterestTags []string   `json:"interestTags"`
+	Interests    string     `json:"interests"`
+	SkillTags    []string   `json:"skillTags"`
+	Skills       string     `json:"skills"`
+	Meetings     []*Meeting `json:"meetings"`
 }
 
 type Credentials struct {
-	Id       uint    `json:"id"`
+	Login    string `json:"login"`
+	Password string `json:"password"`
+	uId      int
+}
+
+type UserId struct {
+	Uid int `json:"userId"`
+}
+
+type LogPassPair struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }
 
-type UserId struct {
-	Uid uint `json:"userId"`
-}
+var Sessions = map[string]int{}
 
-type LogPassPair struct {
-	Login 	    string `json:"login"`
-	Password 	string `json:"password"`
-}
-
-var Sessions = map[string]uint{}
-
-var UserCards = map[uint]UserCard{
+var UserStorage = map[int]*User{
 	0: {
-		CardId:       0,
+		Id:           0,
 		Name:         "Александр",
-		ImgSrc:       "assets/luckash.jpeg",
-		Job:          "Главный чекист КГБ",
-		Interestings: []string{"Картофель"},
-		Skills:       []string{"Разгон митингов"},
+		Gender:       "M",
+		City:         "Нурсултан",
+		Email:        "lucash@mail.ru",
+		Telegram:     "",
+		Vk:           "https://vk.com/id241926559",
+		Education:    "МГТУ им. Н. Э. Баумана до 2010",
+		Job:          "MAIL RU GROUP",
+		ImgPath:      "assets/luckash.jpeg",
+		Aims:         "Хочу от жизни всего",
+		InterestTags: []string{"Картофель"},
+		Interests:    "Люблю, когда встаешь утром, а на столе #Шыпшына и #Картофель",
+		SkillTags:    []string{"Мелиорация"},
+		Skills:       "#Мелиорация - это моя жизнь",
+		Meetings:     []*Meeting{},
 	},
 }
 
-var MeetCards = map[uint]MeetCard{
+var MeetingStorage = map[int]*Meeting{
 	0: {
-		CardId: 0,
-		Title:  "Забив с++",
+		Id:    0,
+		Title: "Забив с++",
 		Text: "Lorem ipsum dolor sit amet, " +
 			"consectetur adipiscing elit, sed " +
 			"do eiusmod tempor incididunt ut " +
@@ -77,42 +95,16 @@ var MeetCards = map[uint]MeetCard{
 			"Ut enim ad minim veniam, quis " +
 			"nostrud exercitation ullamco labori",
 		ImgSrc: "assets/paris.jpg",
-		Labels: []string{"Rust", "Забив", "В падике"},
+		Tags:   []string{},
 		Place:  "Дом Пушкина, улица Колотушкина",
 		Date:   "12 сентября 2020",
 	},
 }
 
-var UserProfiles = map[uint]UserProfile{
-	0: {
-		ImgSrc:   "assets/luckash.jpeg",
-		Name:     "Александр Лукашенко",
-		City:     "Петрозаводск",
-		Telegram: "",
-		Vk:       "https://vk.com/id241926559",
-		Meetings: []Meeting{
-			{
-				ImgSrc: "assets/vk.png",
-				Text:   "Александр Лукашенко",
-			},
-			{
-				ImgSrc: "assets/vk.png",
-				Text:   "Александр Лукашенко",
-			},
-		},
-		Interestings: `Картофель`,
-		Skills: `Разгон митингов`,
-		Education: "МГТУ им. Н. Э. Баумана до 2010",
-		Job:       "MAIL GROUP до 2008",
-		Aims:      "Хочу от жизни всего",
-	},
-}
-
-var CredStorage = map[string]Credentials{
+var CredStorage = map[string]*Credentials{
 	"lukash@mail.ru": {
 		Login:    "lukash@mail.ru",
 		Password: "12345",
-		Id:       0,
+		uId:      0,
 	},
 }
-
