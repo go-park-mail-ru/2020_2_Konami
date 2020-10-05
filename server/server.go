@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	"io"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,42 +28,40 @@ func WriteError(w http.ResponseWriter, msg string, responseCode int) {
 }
 
 func GetMeetings(w http.ResponseWriter, r *http.Request) {
-	pageNum := r.URL.Query().Get("pageNum")
-
-	log.Println("Get meetings")
-	log.Println(pageNum)
-
-	meets := make([]MeetCard, len(MeetCards))
+	meets := make([]*Meeting, len(MeetingStorage))
 	i := 0
-	for _, value := range MeetCards {
+	for _, value := range MeetingStorage {
 		meets[i] = value
 		i++
+	}
+	if len(meets) == 0 {
+		WriteError(w, "no meetings found", http.StatusNotFound)
+		return
 	}
 	WriteJson(w, meets)
 }
 
 func GetPeople(w http.ResponseWriter, r *http.Request) {
-	pageNum := r.URL.Query().Get("pageNum")
-
-	log.Println("Get people")
-	log.Println(pageNum)
-
-	var users []UserCard
-	for _, v := range UserCards {
-		users = append(users, v)
+	users := make([]*User, len(UserStorage))
+	i := 0
+	for _, value := range UserStorage {
+		users[i] = value
+		i++
+	}
+	if len(users) == 0 {
+		WriteError(w, "no users found", http.StatusNotFound)
+		return
 	}
 	WriteJson(w, users)
 }
 
 func GetUser(w http.ResponseWriter, r *http.Request) {
-	userId, err := strconv.ParseUint(r.URL.Query().Get("userId"), 10, 32)
+	userId, err := strconv.Atoi(r.URL.Query().Get("userId"))
 	if err != nil {
 		WriteError(w, "user id not found", http.StatusNotFound)
 		return
 	}
-	log.Printf("Get person %d\n", userId)
-
-	profile, ok := UserProfiles[uint(userId)]
+	profile, ok := UserStorage[userId]
 	if !ok {
 		WriteError(w, "profile not found", http.StatusNotFound)
 		return
@@ -69,8 +70,6 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func EditUser(w http.ResponseWriter, r *http.Request) {
-	log.Println("Edit user")
-
 	session, err := r.Cookie("authToken")
 	if err != nil {
 		WriteError(w, "client unauthorized", http.StatusUnauthorized)
@@ -81,31 +80,20 @@ func EditUser(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, "client unauthorized", http.StatusUnauthorized)
 		return
 	}
-	buf, ok := UserProfiles[userId]
-	if !ok {
-		WriteError(w, "client profile not found", http.StatusNotFound)
-		return
-	}
+	buf := &UserUpdate{}
 	err = json.NewDecoder(r.Body).Decode(&buf)
 	if err != nil {
 		WriteError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	UserProfiles[userId] = buf
-	UserCards[userId] = UserCard{
-		CardId:       userId,
-		Name:         UserProfiles[userId].Name,
-		ImgSrc:       UserProfiles[userId].ImgSrc,
-		Job:          UserProfiles[userId].Job,
-		Interestings: []string{UserProfiles[userId].Interestings},
-		Skills:       []string{UserProfiles[userId].Skills},
+	ok = CommitUserUpdate(buf, userId)
+	if !ok {
+		WriteError(w, "profile not found", http.StatusNotFound)
 	}
 	w.WriteHeader(http.StatusOK)
 }
 
 func GetUserId(w http.ResponseWriter, r *http.Request) {
-	log.Println("Get user id")
-
 	session, err := r.Cookie("authToken")
 	if err != nil {
 		WriteError(w, "client unauthorized", http.StatusUnauthorized)
@@ -121,14 +109,13 @@ func GetUserId(w http.ResponseWriter, r *http.Request) {
 }
 
 func LogIn(w http.ResponseWriter, r *http.Request) {
-	log.Println("Login")
-
-	var userData LogPassPair
+	var userData Credentials
 	err := json.NewDecoder(r.Body).Decode(&userData)
-	if err != nil {
+	if err != nil || userData.Login == "" || userData.Password == "" {
 		WriteError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
+	//TODO: hash
 	credData, ok := CredStorage[userData.Login]
 	if !ok || credData.Password != userData.Password {
 		WriteError(w, "invalid credentials", http.StatusUnauthorized)
@@ -141,12 +128,12 @@ func LogIn(w http.ResponseWriter, r *http.Request) {
 		Expires: time.Now().Add(30 * 24 * time.Hour),
 	}
 	http.SetCookie(w, &cookie)
-	Sessions[token] = credData.Id
+	Sessions[token] = credData.uId
 	w.WriteHeader(http.StatusOK)
 }
 
-func SignOut(w http.ResponseWriter, r *http.Request) {
-	log.Println("SignOut")
+func LogOut(w http.ResponseWriter, r *http.Request) {
+	log.Println("LogOut")
 	session, err := r.Cookie("authToken")
 	if err != nil {
 		w.WriteHeader(http.StatusOK)
@@ -165,7 +152,7 @@ func SignOut(w http.ResponseWriter, r *http.Request) {
 
 func SignUp(w http.ResponseWriter, r *http.Request) {
 	log.Println("SignUp")
-	var userData LogPassPair
+	var userData Credentials
 	err := json.NewDecoder(r.Body).Decode(&userData)
 	if err != nil {
 		WriteError(w, "invalid request body", http.StatusBadRequest)
@@ -173,34 +160,69 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	}
 	_, exists := CredStorage[userData.Login]
 	if exists {
-		WriteError(w, "login has already been taken", http.StatusBadRequest)
+		WriteError(w, "login has already been taken", http.StatusConflict)
 		return
 	}
-	newInd := uint(len(UserProfiles))
-	for ; ; newInd++ {
-		_, existsProfile := UserProfiles[newInd]
-		_, existsCard := UserCards[newInd]
-		if !existsProfile && !existsCard {
+	newInd := rand.Int()
+	for ; ; newInd = rand.Int() {
+		_, existsProfile := UserStorage[newInd]
+		if !existsProfile {
 			break
 		}
 	}
-	// TODO: Single structure
-	UserProfiles[newInd] = UserProfile{Name: "NoName", ImgSrc: "assets/luckash.jpeg", Meetings: []Meeting{}}
-	UserCards[newInd] = UserCard{CardId: newInd, Name: "NoName", ImgSrc: "assets/luckash.jpeg",
-		Interestings: []string{},
-		Skills:       []string{},
+	userData.uId = newInd
+	UserStorage[newInd] = &User{
+		ImgPath:      "assets/luckash.jpeg",
+		InterestTags: []string{},
+		SkillTags:    []string{},
+		Meetings:     []*Meeting{},
 	}
-	CredStorage[userData.Login] = Credentials{
-		Id:       newInd,
-		Login:    userData.Login,
-		Password: userData.Password,
-	}
+	CredStorage[userData.Login] = &userData
 	w.WriteHeader(http.StatusOK)
 }
 
-func EditOnSignUp(w http.ResponseWriter, r *http.Request) {
-	log.Println("EditOnSignUp")
-	// TODO: Still no JSON
+func UploadUserPic(w http.ResponseWriter, r *http.Request) {
+	userId, err := strconv.Atoi(r.URL.Query().Get("userId"))
+	if err != nil {
+		WriteError(w, "user id not found", http.StatusNotFound)
+		return
+	}
+	profile, exists := UserStorage[userId]
+	if !exists {
+		WriteError(w, "profile not found", http.StatusNotFound)
+		return
+	}
+	err = r.ParseMultipartForm(10 * 1024 * 1024)
+	if err != nil {
+		WriteError(w, "invalid multipart form", http.StatusBadRequest)
+		return
+	}
+	file, handler, err := r.FormFile("file")
+	if err != nil {
+		WriteError(w, "invalid form file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+	fname := strings.Split(handler.Filename, ".")
+	ext := fname[len(fname)-1]
+	if ext != "jpg" && ext != "jpeg" && ext != "png" && ext != "gif" {
+		WriteError(w, "invalid file format", http.StatusBadRequest)
+	}
+	imgPath := "uploads/userpics/" + strconv.Itoa(userId) + "." + ext
+
+	f, err := os.OpenFile(imgPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		WriteError(w, "unable to create file", http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+	var written int64 = 0
+	written, err = io.Copy(f, file)
+	if err != nil || written == 0 {
+		WriteError(w, "unable to save file", http.StatusInternalServerError)
+		return
+	}
+	profile.ImgPath = imgPath
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -212,10 +234,11 @@ func main() {
 	r.HandleFunc("/user", EditUser).Methods("POST")
 	r.HandleFunc("/me", GetUserId).Methods("GET")
 	r.HandleFunc("/login", LogIn).Methods("POST")
-	r.HandleFunc("/signout", SignOut).Methods("POST")
+	r.HandleFunc("/logout", LogOut).Methods("POST")
 	r.HandleFunc("/signup", SignUp).Methods("POST")
-	r.HandleFunc("/edit_on_signup", EditOnSignUp).Methods("POST")
+	r.HandleFunc("/images", UploadUserPic).Methods("POST")
 
+	r.PathPrefix("/uploads/").HandlerFunc(serveUploads)
 	r.PathPrefix("/").HandlerFunc(serveStatic)
 
 	port := os.Getenv("PORT")
@@ -237,4 +260,8 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 		fPath = path.Join(staticPath, r.URL.Path)
 	}
 	http.ServeFile(w, r, fPath)
+}
+
+func serveUploads(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, r.URL.Path)
 }

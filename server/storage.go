@@ -30,19 +30,19 @@ type Meeting struct {
 }
 
 type UserUpdate struct {
-	Name         string     `json:"name"`
-	Gender       string     `json:"gender"`
-	City         string     `json:"city"`
-	Email        string     `json:"email"`
-	Telegram     string     `json:"telegram"`
-	Vk           string     `json:"vk"`
-	Education    string     `json:"education"`
-	Job          string     `json:"job"`
-	Aims         string     `json:"aims"`
+	Name         *string    `json:"name"`
+	Gender       *string    `json:"gender"`
+	City         *string    `json:"city"`
+	Email        *string    `json:"email"`
+	Telegram     *string    `json:"telegram"`
+	Vk           *string    `json:"vk"`
+	Education    *string    `json:"education"`
+	Job          *string    `json:"job"`
+	Aims         *string    `json:"aims"`
 	InterestTags []string   `json:"interestTags"`
-	Interests    string     `json:"interests"`
+	Interests    *string    `json:"interests"`
 	SkillTags    []string   `json:"skillTags"`
-	Skills       string     `json:"skills"`
+	Skills       *string    `json:"skills"`
 	Meetings     []*Meeting `json:"meetings"`
 }
 
@@ -54,11 +54,6 @@ type Credentials struct {
 
 type UserId struct {
 	Uid int `json:"userId"`
-}
-
-type LogPassPair struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
 }
 
 var Sessions = map[string]int{}
@@ -107,4 +102,54 @@ var CredStorage = map[string]*Credentials{
 		Password: "12345",
 		uId:      0,
 	},
+}
+
+func CommitUserUpdate(data *UserUpdate, userId int) bool {
+	usr, exists := UserStorage[userId]
+	if !exists {
+		return false
+	}
+	if data.Name != nil {
+		usr.Name = *data.Name
+	}
+	if data.Gender != nil {
+		usr.Gender = *data.Gender
+	}
+	if data.City != nil {
+		usr.City = *data.City
+	}
+	if data.Email != nil {
+		usr.Email = *data.Email
+	}
+	if data.Telegram != nil {
+		usr.Telegram = *data.Telegram
+	}
+	if data.Vk != nil {
+		usr.Vk = *data.Vk
+	}
+	if data.Education != nil {
+		usr.Education = *data.Education
+	}
+	if data.Job != nil {
+		usr.Job = *data.Job
+	}
+	if data.Aims != nil {
+		usr.Aims = *data.Aims
+	}
+	if data.InterestTags != nil {
+		usr.InterestTags = data.InterestTags
+	}
+	if data.Interests != nil {
+		usr.Interests = *data.Interests
+	}
+	if data.SkillTags != nil {
+		usr.SkillTags = data.SkillTags
+	}
+	if data.Skills != nil {
+		usr.Skills = *data.Skills
+	}
+	if data.Meetings != nil {
+		usr.Meetings = data.Meetings
+	}
+	return true
 }
