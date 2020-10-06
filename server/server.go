@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
+	"golang.org/x/crypto/bcrypt"
 	"io"
 	"log"
 	"math/rand"
@@ -25,6 +26,17 @@ func WriteError(w http.ResponseWriter, msg string, responseCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(responseCode)
 	w.Write([]byte(errMsg))
+}
+
+func CreateSession(w http.ResponseWriter, uId int) {
+	token := uuid.New()
+	cookie := http.Cookie{
+		Name:    "authToken",
+		Value:   token,
+		Expires: time.Now().Add(30 * 24 * time.Hour),
+	}
+	http.SetCookie(w, &cookie)
+	Sessions[token] = uId
 }
 
 func GetMeetings(w http.ResponseWriter, r *http.Request) {
@@ -83,12 +95,17 @@ func EditUser(w http.ResponseWriter, r *http.Request) {
 	buf := &UserUpdate{}
 	err = json.NewDecoder(r.Body).Decode(&buf)
 	if err != nil {
+		log.Println(err)
 		WriteError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	ok = CommitUserUpdate(buf, userId)
-	if !ok {
+	usr, exists := UserStorage[userId]
+	if !exists {
 		WriteError(w, "profile not found", http.StatusNotFound)
+	}
+	ok = CommitUserUpdate(buf, usr)
+	if !ok {
+		WriteError(w, "unable to update profile", http.StatusBadRequest)
 	}
 	w.WriteHeader(http.StatusOK)
 }
@@ -115,25 +132,20 @@ func LogIn(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	//TODO: hash
 	credData, ok := CredStorage[userData.Login]
-	if !ok || credData.Password != userData.Password {
+	if !ok {
 		WriteError(w, "invalid credentials", http.StatusUnauthorized)
 		return
 	}
-	token := uuid.New()
-	cookie := http.Cookie{
-		Name:    "authToken",
-		Value:   token,
-		Expires: time.Now().Add(30 * 24 * time.Hour),
+	cmpRes := bcrypt.CompareHashAndPassword([]byte(credData.Password), []byte(userData.Password))
+	if cmpRes != nil {
+		WriteError(w, "invalid credentials", http.StatusInternalServerError)
 	}
-	http.SetCookie(w, &cookie)
-	Sessions[token] = credData.uId
+	CreateSession(w, credData.uId)
 	w.WriteHeader(http.StatusOK)
 }
 
 func LogOut(w http.ResponseWriter, r *http.Request) {
-	log.Println("LogOut")
 	session, err := r.Cookie("authToken")
 	if err != nil {
 		w.WriteHeader(http.StatusOK)
@@ -151,40 +163,51 @@ func LogOut(w http.ResponseWriter, r *http.Request) {
 }
 
 func SignUp(w http.ResponseWriter, r *http.Request) {
-	log.Println("SignUp")
-	var userData Credentials
-	err := json.NewDecoder(r.Body).Decode(&userData)
+	var creds Credentials
+	err := json.NewDecoder(r.Body).Decode(&creds)
 	if err != nil {
 		WriteError(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	_, exists := CredStorage[userData.Login]
+	_, exists := CredStorage[creds.Login]
 	if exists {
 		WriteError(w, "login has already been taken", http.StatusConflict)
 		return
 	}
-	newInd := rand.Int()
+	hashed, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.MinCost)
+	if err != nil {
+		WriteError(w, "internal error", http.StatusInternalServerError)
+	}
+	creds.Password = string(hashed)
+	newInd := rand.Intn(1 << 30)
 	for ; ; newInd = rand.Int() {
 		_, existsProfile := UserStorage[newInd]
 		if !existsProfile {
 			break
 		}
 	}
-	userData.uId = newInd
+	creds.uId = newInd
 	UserStorage[newInd] = &User{
-		ImgPath:      "assets/luckash.jpeg",
+		Id:           newInd,
+		ImgSrc:       "assets/luckash.jpeg",
 		InterestTags: []string{},
 		SkillTags:    []string{},
 		Meetings:     []*Meeting{},
 	}
-	CredStorage[userData.Login] = &userData
+	CredStorage[creds.Login] = &creds
+	CreateSession(w, newInd)
 	w.WriteHeader(http.StatusOK)
 }
 
 func UploadUserPic(w http.ResponseWriter, r *http.Request) {
-	userId, err := strconv.Atoi(r.URL.Query().Get("userId"))
+	session, err := r.Cookie("authToken")
 	if err != nil {
-		WriteError(w, "user id not found", http.StatusNotFound)
+		WriteError(w, "client unauthorized", http.StatusUnauthorized)
+		return
+	}
+	userId, ok := Sessions[session.Value]
+	if !ok {
+		WriteError(w, "client unauthorized", http.StatusUnauthorized)
 		return
 	}
 	profile, exists := UserStorage[userId]
@@ -197,7 +220,7 @@ func UploadUserPic(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, "invalid multipart form", http.StatusBadRequest)
 		return
 	}
-	file, handler, err := r.FormFile("file")
+	file, handler, err := r.FormFile("fileToUpload")
 	if err != nil {
 		WriteError(w, "invalid form file", http.StatusBadRequest)
 		return
@@ -222,7 +245,7 @@ func UploadUserPic(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, "unable to save file", http.StatusInternalServerError)
 		return
 	}
-	profile.ImgPath = imgPath
+	profile.ImgSrc = imgPath
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -263,5 +286,6 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveUploads(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, r.URL.Path)
+	relPath := strings.TrimPrefix(r.URL.Path, "/")
+	http.ServeFile(w, r, relPath)
 }

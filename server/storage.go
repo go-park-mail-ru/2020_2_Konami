@@ -1,16 +1,22 @@
 package main
 
+import (
+	"regexp"
+)
+
 type User struct {
 	Id           int        `json:"id"`
 	Name         string     `json:"name"`
 	Gender       string     `json:"gender"`
+	Birthday     string     `json:"birthday"`
 	City         string     `json:"city"`
 	Email        string     `json:"email"`
 	Telegram     string     `json:"telegram"`
 	Vk           string     `json:"vk"`
+	MeetingTags  []string   `json:"meetingTags"`
 	Education    string     `json:"education"`
 	Job          string     `json:"job"`
-	ImgPath      string     `json:"imgPath"`
+	ImgSrc       string     `json:"imgSrc"`
 	Aims         string     `json:"aims"`
 	InterestTags []string   `json:"interestTags"`
 	Interests    string     `json:"interests"`
@@ -30,20 +36,20 @@ type Meeting struct {
 }
 
 type UserUpdate struct {
-	Name         *string    `json:"name"`
-	Gender       *string    `json:"gender"`
-	City         *string    `json:"city"`
-	Email        *string    `json:"email"`
-	Telegram     *string    `json:"telegram"`
-	Vk           *string    `json:"vk"`
-	Education    *string    `json:"education"`
-	Job          *string    `json:"job"`
-	Aims         *string    `json:"aims"`
-	InterestTags []string   `json:"interestTags"`
-	Interests    *string    `json:"interests"`
-	SkillTags    []string   `json:"skillTags"`
-	Skills       *string    `json:"skills"`
-	Meetings     []*Meeting `json:"meetings"`
+	Name        *string    `json:"name"`
+	Gender      *string    `json:"gender"`
+	City        *string    `json:"city"`
+	Birthday    *string    `json:"birthday"`
+	Email       *string    `json:"email"`
+	Telegram    *string    `json:"telegram"`
+	Vk          *string    `json:"vk"`
+	MeetingTags []string   `json:"meetingTags"`
+	Education   *string    `json:"education"`
+	Job         *string    `json:"job"`
+	Aims        *string    `json:"aims"`
+	Interests   *string    `json:"interests"`
+	Skills      *string    `json:"skills"`
+	Meetings    []*Meeting `json:"meetings"`
 }
 
 type Credentials struct {
@@ -64,15 +70,17 @@ var UserStorage = map[int]*User{
 		Name:         "Александр",
 		Gender:       "M",
 		City:         "Нурсултан",
+		Birthday:     "2020-09-12",
 		Email:        "lucash@mail.ru",
 		Telegram:     "",
 		Vk:           "https://vk.com/id241926559",
+		MeetingTags:  []string{"RandomTag1", "RandomTag5"},
 		Education:    "МГТУ им. Н. Э. Баумана до 2010",
 		Job:          "MAIL RU GROUP",
-		ImgPath:      "assets/luckash.jpeg",
+		ImgSrc:       "assets/luckash.jpeg",
 		Aims:         "Хочу от жизни всего",
-		InterestTags: []string{"Картофель"},
-		Interests:    "Люблю, когда встаешь утром, а на столе #Шыпшына и #Картофель",
+		InterestTags: []string{"Шыпшына", "Бульба"},
+		Interests:    "Люблю, когда встаешь утром, а на столе #Шыпшына и #Бульба",
 		SkillTags:    []string{"Мелиорация"},
 		Skills:       "#Мелиорация - это моя жизнь",
 		Meetings:     []*Meeting{},
@@ -92,21 +100,31 @@ var MeetingStorage = map[int]*Meeting{
 		ImgSrc: "assets/paris.jpg",
 		Tags:   []string{},
 		Place:  "Дом Пушкина, улица Колотушкина",
-		Date:   "12 сентября 2020",
+		Date:   "2020-09-12",
 	},
 }
 
 var CredStorage = map[string]*Credentials{
 	"lukash@mail.ru": {
 		Login:    "lukash@mail.ru",
-		Password: "12345",
+		Password: "$2a$04$7aVIDD36QgWr2L6iFgHGtesm0elmggbTryERfPruKS1e9R8CHadHi",
 		uId:      0,
 	},
 }
 
-func CommitUserUpdate(data *UserUpdate, userId int) bool {
-	usr, exists := UserStorage[userId]
-	if !exists {
+func CommitUserUpdate(data *UserUpdate, usr *User) bool {
+	ISOdt := regexp.MustCompile(`^(?:[1-9]\d{3}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1\d|2[0-8])` +
+		`|(?:0[13-9]|1[0-2])-(?:29|30)|(?:0[13578]|1[02])-31)|(?:[1-9]\d(?:0[48]|[2468][048]` +
+		`|[13579][26])|(?:[2468][048]|[13579][26])00)-02-29)$`)
+	reEmail := regexp.MustCompile(`^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@` +
+		`((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$`)
+	if data.Birthday != nil && *data.Birthday != "" && !ISOdt.MatchString(*data.Birthday) {
+		return false
+	}
+	if data.Gender != nil && *data.Gender != "M" && *data.Gender != "F" && *data.Gender != "" {
+		return false
+	}
+	if data.Email != nil && *data.Email != "" && !reEmail.MatchString(*data.Email) {
 		return false
 	}
 	if data.Name != nil {
@@ -118,6 +136,9 @@ func CommitUserUpdate(data *UserUpdate, userId int) bool {
 	if data.City != nil {
 		usr.City = *data.City
 	}
+	if data.Birthday != nil {
+		usr.Birthday = *data.Birthday
+	}
 	if data.Email != nil {
 		usr.Email = *data.Email
 	}
@@ -126,6 +147,9 @@ func CommitUserUpdate(data *UserUpdate, userId int) bool {
 	}
 	if data.Vk != nil {
 		usr.Vk = *data.Vk
+	}
+	if data.MeetingTags != nil {
+		usr.MeetingTags = data.MeetingTags
 	}
 	if data.Education != nil {
 		usr.Education = *data.Education
@@ -136,17 +160,23 @@ func CommitUserUpdate(data *UserUpdate, userId int) bool {
 	if data.Aims != nil {
 		usr.Aims = *data.Aims
 	}
-	if data.InterestTags != nil {
-		usr.InterestTags = data.InterestTags
-	}
+	reMatch := regexp.MustCompile(`\#(?:([a-zA-Z0-9_а-яА-Яё\+\-*]{3,20})|(?:\(([a-zA-Z0-9_а-яА-Яё\ ]{3,20})\)))`)
+	reSub := regexp.MustCompile(`[#()]`)
 	if data.Interests != nil {
 		usr.Interests = *data.Interests
-	}
-	if data.SkillTags != nil {
-		usr.SkillTags = data.SkillTags
+		res := reMatch.FindAllString(usr.Interests, -1)
+		usr.InterestTags = make([]string, len(res))
+		for i, str := range res {
+			usr.InterestTags[i] = reSub.ReplaceAllString(str, "")
+		}
 	}
 	if data.Skills != nil {
 		usr.Skills = *data.Skills
+		res := reMatch.FindAllString(usr.Skills, -1)
+		usr.SkillTags = make([]string, len(res))
+		for i, str := range res {
+			usr.SkillTags[i] = reSub.ReplaceAllString(str, "")
+		}
 	}
 	if data.Meetings != nil {
 		usr.Meetings = data.Meetings
