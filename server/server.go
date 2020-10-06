@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -40,17 +41,18 @@ func CreateSession(w http.ResponseWriter, uId int) {
 }
 
 func GetMeetings(w http.ResponseWriter, r *http.Request) {
-	meets := make([]*Meeting, len(MeetingStorage))
+	meetings := make([]*Meeting, len(MeetingStorage))
 	i := 0
 	for _, value := range MeetingStorage {
-		meets[i] = value
+		meetings[i] = value
 		i++
 	}
-	if len(meets) == 0 {
+	if len(meetings) == 0 {
 		WriteError(w, "no meetings found", http.StatusNotFound)
 		return
 	}
-	WriteJson(w, meets)
+	sort.Sort(MeetingsByDate(meetings))
+	WriteJson(w, meetings)
 }
 
 func GetPeople(w http.ResponseWriter, r *http.Request) {
@@ -64,6 +66,7 @@ func GetPeople(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, "no users found", http.StatusNotFound)
 		return
 	}
+	sort.Sort(UsersByName(users))
 	WriteJson(w, users)
 }
 

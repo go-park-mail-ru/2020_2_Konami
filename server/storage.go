@@ -64,13 +64,40 @@ type UserId struct {
 
 var Sessions = map[string]int{}
 
+type UsersByName []*User
+
+func (u UsersByName) Len() int {
+	return len(u)
+}
+
+func (u UsersByName) Swap(i, j int) {
+	u[i], u[j] = u[j], u[i]
+}
+
+func (u UsersByName) Less(i, j int) bool {
+	return u[i].Name < u[j].Name
+}
+
+type MeetingsByDate []*Meeting
+
+func (m MeetingsByDate) Len() int {
+	return len(m)
+}
+func (m MeetingsByDate) Swap(i, j int) {
+	m[i], m[j] = m[j], m[i]
+}
+
+func (m MeetingsByDate) Less(i, j int) bool {
+	return m[i].Date < m[j].Date
+}
+
 var UserStorage = map[int]*User{
 	0: {
 		Id:           0,
 		Name:         "Александр",
 		Gender:       "M",
 		City:         "Нурсултан",
-		Birthday:     "2020-09-12",
+		Birthday:     "1990-09-12",
 		Email:        "lucash@mail.ru",
 		Telegram:     "",
 		Vk:           "https://vk.com/id241926559",
@@ -83,6 +110,24 @@ var UserStorage = map[int]*User{
 		Interests:    "Люблю, когда встаешь утром, а на столе #Шыпшына и #Бульба",
 		SkillTags:    []string{"Мелиорация"},
 		Skills:       "#Мелиорация - это моя жизнь",
+		Meetings:     []*Meeting{},
+	},
+	1: {
+		Id:           1,
+		Name:         "Роман",
+		Gender:       "M",
+		City:         "Москва",
+		Birthday:     "2000-09-10",
+		Email:        "lucash2@mail.ru",
+		Telegram:     "",
+		Vk:           "https://vk.com/id420",
+		MeetingTags:  []string{"RandomTag1", "RandomTag5"},
+		Job:          "HH.ru",
+		ImgSrc:       "assets/luckash.jpg",
+		InterestTags: []string{"ДВП", "ДСП"},
+		Interests:    "Люблю клеить #ДВП и #ДСП",
+		SkillTags:    []string{"Деревообработка"},
+		Skills:       "Моя жизнь - это #Деревообработка",
 		Meetings:     []*Meeting{},
 	},
 }
@@ -99,8 +144,22 @@ var MeetingStorage = map[int]*Meeting{
 			"nostrud exercitation ullamco labori",
 		ImgSrc: "assets/paris.jpg",
 		Tags:   []string{"C++"},
-		Place:  "Дом Пушкина, улица Колотушкина",
-		Date:   "2020-09-12",
+		Place:  "Москва, улица Колотушкина, дом Пушкина",
+		Date:   "2020-11-10",
+	},
+	1: {
+		Id:    1,
+		Title: "Python for Web",
+		Text: "Lorem ipsum dolor sit amet, " +
+			"consectetur adipiscing elit, sed " +
+			"do eiusmod tempor incididunt ut " +
+			"labore et dolore magna aliqua. " +
+			"Ut enim ad minim veniam, quis " +
+			"nostrud exercitation ullamco labori",
+		ImgSrc: "assets/paris.jpg",
+		Tags:   []string{"Python", "Web"},
+		Place:  "СПБ, улица Вязов, д.1",
+		Date:   "2020-11-12",
 	},
 }
 
@@ -109,6 +168,11 @@ var CredStorage = map[string]*Credentials{
 		Login:    "lukash@mail.ru",
 		Password: "$2a$04$7aVIDD36QgWr2L6iFgHGtesm0elmggbTryERfPruKS1e9R8CHadHi",
 		uId:      0,
+	},
+	"lukash2@mail.ru": {
+		Login:    "lukash2@mail.ru",
+		Password: "$2a$04$7aVIDD36QgWr2L6iFgHGtesm0elmggbTryERfPruKS1e9R8CHadHi",
+		uId:      1,
 	},
 }
 
