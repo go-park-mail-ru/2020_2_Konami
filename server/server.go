@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -269,11 +270,33 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "80"
+	}
+	certFile := os.Getenv("CERTFILE")
+	if certFile == "" {
+		certFile = "/etc/letsencrypt/live/okto.pw/fullchain.pem"
+	}
+	keyFile := os.Getenv("KEYFILE")
+	if keyFile == "" {
+		keyFile = "/etc/letsencrypt/live/okto.pw/privkey.pem"
+	}
+	tlsHost := os.Getenv("TLSHOST")
+	if tlsHost == "" {
+		tlsHost = "okto.pw"
+	}
+	tlsPort := os.Getenv("TLSPORT")
+
+	var err error = nil
+
+	if tlsPort == "" {
+		log.Println("Launching at HTTP port " + port)
+		err = http.ListenAndServe(":"+port, r)
+	} else {
+		go redirectToHTTPS(port, tlsHost, tlsPort)
+		log.Println("Launching at HTTPS port " + tlsPort)
+		err = http.ListenAndServeTLS(":"+tlsPort, certFile, keyFile, r)
 	}
 
-	log.Println("Launching at port " + port)
-	err := http.ListenAndServe(":"+port, r)
 	if err != nil {
 		log.Fatal("Unable to launch server: ", err)
 	}
@@ -291,4 +314,18 @@ func serveStatic(w http.ResponseWriter, r *http.Request) {
 func serveUploads(w http.ResponseWriter, r *http.Request) {
 	relPath := strings.TrimPrefix(r.URL.Path, "/")
 	http.ServeFile(w, r, relPath)
+}
+
+func redirectToHTTPS(port, tlsHost, tlsPort string) {
+	log.Println("Redirect from :" + port + " to " + tlsHost + ":" + tlsPort)
+	httpSrv := http.Server{
+		Addr: ":" + port,
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			u := r.URL
+			u.Host = net.JoinHostPort(tlsHost, tlsPort)
+			u.Scheme = "https"
+			http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
+		}),
+	}
+	log.Println(httpSrv.ListenAndServe())
 }
