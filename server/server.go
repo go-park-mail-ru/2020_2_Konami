@@ -139,7 +139,7 @@ func LogIn(w http.ResponseWriter, r *http.Request) {
 	}
 	cmpRes := bcrypt.CompareHashAndPassword([]byte(credData.Password), []byte(userData.Password))
 	if cmpRes != nil {
-		WriteError(w, "invalid credentials", http.StatusInternalServerError)
+		WriteError(w, "invalid credentials", http.StatusUnauthorized)
 	}
 	CreateSession(w, credData.uId)
 	w.WriteHeader(http.StatusOK)
