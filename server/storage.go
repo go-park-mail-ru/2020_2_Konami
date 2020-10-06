@@ -98,7 +98,7 @@ var MeetingStorage = map[int]*Meeting{
 			"Ut enim ad minim veniam, quis " +
 			"nostrud exercitation ullamco labori",
 		ImgSrc: "assets/paris.jpg",
-		Tags:   []string{},
+		Tags:   []string{"C++"},
 		Place:  "Дом Пушкина, улица Колотушкина",
 		Date:   "2020-09-12",
 	},
