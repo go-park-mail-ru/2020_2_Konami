@@ -23,11 +23,10 @@ func WriteJson(w http.ResponseWriter, data interface{}) {
 	json.NewEncoder(w).Encode(data)
 }
 
-func WriteError(w http.ResponseWriter, msg string, responseCode int) {
-	errMsg := `{"error": "` + msg + `"}`
+func WriteError(w http.ResponseWriter, resp *ErrResponse) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(responseCode)
-	w.Write([]byte(errMsg))
+	w.WriteHeader(resp.ResponseCode)
+	json.NewEncoder(w).Encode(resp)
 }
 
 func CreateSession(w http.ResponseWriter, uId int) {
@@ -49,7 +48,7 @@ func GetMeetings(w http.ResponseWriter, r *http.Request) {
 		i++
 	}
 	if len(meetings) == 0 {
-		WriteError(w, "no meetings found", http.StatusNotFound)
+		WriteError(w, &ErrResponse{http.StatusNotFound, "no meetings found"})
 		return
 	}
 	sort.Sort(MeetingsByDate(meetings))
@@ -64,7 +63,7 @@ func GetPeople(w http.ResponseWriter, r *http.Request) {
 		i++
 	}
 	if len(users) == 0 {
-		WriteError(w, "no users found", http.StatusNotFound)
+		WriteError(w, &ErrResponse{http.StatusNotFound, "no users found"})
 		return
 	}
 	sort.Sort(UsersByName(users))
@@ -74,12 +73,12 @@ func GetPeople(w http.ResponseWriter, r *http.Request) {
 func GetUser(w http.ResponseWriter, r *http.Request) {
 	userId, err := strconv.Atoi(r.URL.Query().Get("userId"))
 	if err != nil {
-		WriteError(w, "user id not found", http.StatusNotFound)
+		WriteError(w, &ErrResponse{http.StatusNotFound, "user id not found"})
 		return
 	}
 	profile, ok := UserStorage[userId]
 	if !ok {
-		WriteError(w, "profile not found", http.StatusNotFound)
+		WriteError(w, &ErrResponse{http.StatusNotFound, "profile not found"})
 		return
 	}
 	WriteJson(w, profile)
@@ -88,28 +87,30 @@ func GetUser(w http.ResponseWriter, r *http.Request) {
 func EditUser(w http.ResponseWriter, r *http.Request) {
 	session, err := r.Cookie("authToken")
 	if err != nil {
-		WriteError(w, "client unauthorized", http.StatusUnauthorized)
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
 		return
 	}
 	userId, ok := Sessions[session.Value]
 	if !ok {
-		WriteError(w, "client unauthorized", http.StatusUnauthorized)
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
 		return
 	}
 	buf := &UserUpdate{}
 	err = json.NewDecoder(r.Body).Decode(&buf)
 	if err != nil {
 		log.Println(err)
-		WriteError(w, "invalid request body", http.StatusBadRequest)
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
 		return
 	}
 	usr, exists := UserStorage[userId]
 	if !exists {
-		WriteError(w, "profile not found", http.StatusNotFound)
+		WriteError(w, &ErrResponse{http.StatusNotFound, "profile not found"})
+		return
 	}
 	ok = CommitUserUpdate(buf, usr)
 	if !ok {
-		WriteError(w, "unable to update profile", http.StatusBadRequest)
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "unable to update profile"})
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
@@ -117,12 +118,12 @@ func EditUser(w http.ResponseWriter, r *http.Request) {
 func GetUserId(w http.ResponseWriter, r *http.Request) {
 	session, err := r.Cookie("authToken")
 	if err != nil {
-		WriteError(w, "client unauthorized", http.StatusUnauthorized)
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
 		return
 	}
 	uId, ok := Sessions[session.Value]
 	if !ok {
-		WriteError(w, "client unauthorized", http.StatusUnauthorized)
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -133,17 +134,18 @@ func LogIn(w http.ResponseWriter, r *http.Request) {
 	var userData Credentials
 	err := json.NewDecoder(r.Body).Decode(&userData)
 	if err != nil || userData.Login == "" || userData.Password == "" {
-		WriteError(w, "invalid request body", http.StatusBadRequest)
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
 		return
 	}
 	credData, ok := CredStorage[userData.Login]
 	if !ok {
-		WriteError(w, "invalid credentials", http.StatusUnauthorized)
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "invalid credentials"})
 		return
 	}
 	cmpRes := bcrypt.CompareHashAndPassword([]byte(credData.Password), []byte(userData.Password))
 	if cmpRes != nil {
-		WriteError(w, "invalid credentials", http.StatusUnauthorized)
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "invalid credentials"})
+		return
 	}
 	CreateSession(w, credData.uId)
 	w.WriteHeader(http.StatusOK)
@@ -170,17 +172,17 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	var creds Credentials
 	err := json.NewDecoder(r.Body).Decode(&creds)
 	if err != nil {
-		WriteError(w, "invalid request body", http.StatusBadRequest)
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
 		return
 	}
 	_, exists := CredStorage[creds.Login]
 	if exists {
-		WriteError(w, "login has already been taken", http.StatusConflict)
+		WriteError(w, &ErrResponse{http.StatusConflict, "login has already been taken"})
 		return
 	}
 	hashed, err := bcrypt.GenerateFromPassword([]byte(creds.Password), bcrypt.MinCost)
 	if err != nil {
-		WriteError(w, "internal error", http.StatusInternalServerError)
+		WriteError(w, &ErrResponse{http.StatusInternalServerError, "internal error"})
 	}
 	creds.Password = string(hashed)
 	newInd := rand.Intn(1 << 30)
@@ -206,47 +208,47 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 func UploadUserPic(w http.ResponseWriter, r *http.Request) {
 	session, err := r.Cookie("authToken")
 	if err != nil {
-		WriteError(w, "client unauthorized", http.StatusUnauthorized)
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
 		return
 	}
 	userId, ok := Sessions[session.Value]
 	if !ok {
-		WriteError(w, "client unauthorized", http.StatusUnauthorized)
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
 		return
 	}
 	profile, exists := UserStorage[userId]
 	if !exists {
-		WriteError(w, "profile not found", http.StatusNotFound)
+		WriteError(w, &ErrResponse{http.StatusNotFound, "profile not found"})
 		return
 	}
 	err = r.ParseMultipartForm(10 * 1024 * 1024)
 	if err != nil {
-		WriteError(w, "invalid multipart form", http.StatusBadRequest)
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid multipart form"})
 		return
 	}
 	file, handler, err := r.FormFile("fileToUpload")
 	if err != nil {
-		WriteError(w, "invalid form file", http.StatusBadRequest)
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid form file"})
 		return
 	}
 	defer file.Close()
 	fname := strings.Split(handler.Filename, ".")
 	ext := fname[len(fname)-1]
 	if ext != "jpg" && ext != "jpeg" && ext != "png" && ext != "gif" {
-		WriteError(w, "invalid file format", http.StatusBadRequest)
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid file format"})
 	}
 	imgPath := "uploads/userpics/" + strconv.Itoa(userId) + "." + ext
 
 	f, err := os.OpenFile(imgPath, os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
-		WriteError(w, "unable to create file", http.StatusInternalServerError)
+		WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to create file"})
 		return
 	}
 	defer f.Close()
 	var written int64 = 0
 	written, err = io.Copy(f, file)
 	if err != nil || written == 0 {
-		WriteError(w, "unable to save file", http.StatusInternalServerError)
+		WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to save file"})
 		return
 	}
 	profile.ImgSrc = imgPath

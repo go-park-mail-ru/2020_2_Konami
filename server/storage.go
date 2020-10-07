@@ -62,6 +62,11 @@ type UserId struct {
 	Uid int `json:"userId"`
 }
 
+type ErrResponse struct {
+	ResponseCode int    `json:"-"`
+	ErrMsg       string `json:"error"`
+}
+
 var Sessions = map[string]int{}
 
 type UsersByName []*User
