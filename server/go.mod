@@ -1,4 +1,4 @@
-module github.com/go-park-mail-ru/2020_2_Konami
+module server
 
 go 1.15
 
