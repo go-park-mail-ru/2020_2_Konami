@@ -62,6 +62,17 @@ type UserId struct {
 	Uid int `json:"userId"`
 }
 
+type MeetingUpload struct {
+	Address     string   `json:"address"`
+	City        string   `json:"city"`
+	Start       string   `json:"start"`
+	End         string   `json:"end"`
+	Description string   `json:"meet-description"`
+	Tags        []string `json:"meetingTags"`
+	Name        string   `json:"title"`
+	Photo       string   `json:"photo"`
+}
+
 type ErrResponse struct {
 	ResponseCode int    `json:"-"`
 	ErrMsg       string `json:"error"`

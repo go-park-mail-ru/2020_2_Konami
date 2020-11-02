@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"log"
 	"math/rand"
@@ -234,8 +239,9 @@ func UploadUserPic(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 	fname := strings.Split(handler.Filename, ".")
 	ext := fname[len(fname)-1]
-	if ext != "jpg" && ext != "jpeg" && ext != "png" && ext != "gif" {
+	if ext != "jpg" && ext != "jpeg" && ext != "png" {
 		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid file format"})
+		return
 	}
 	imgPath := "uploads/userpics/" + strconv.Itoa(userId) + "." + ext
 
@@ -255,17 +261,87 @@ func UploadUserPic(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func CreateMeeting(w http.ResponseWriter, r *http.Request) {
+	session, err := r.Cookie("authToken")
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+		return
+	}
+	_, ok := Sessions[session.Value]
+	if !ok {
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+		return
+	}
+	mData := &MeetingUpload{}
+	err = json.NewDecoder(r.Body).Decode(&mData)
+	if err != nil {
+		log.Println(err)
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
+		return
+	}
+	newInd := rand.Intn(1 << 30)
+	for ; ; newInd = rand.Int() {
+		_, existsMeeting := MeetingStorage[newInd]
+		if !existsMeeting {
+			break
+		}
+	}
+	// TODO: separate image handling
+	jpegPrefix := "data:image/jpeg;base64,"
+	pngPrefix := "data:image/png;base64,"
+	var img image.Image
+	err = nil
+	if strings.HasPrefix(mData.Photo, jpegPrefix) {
+		rawImage := mData.Photo[len(jpegPrefix):]
+		decoded, _ := base64.StdEncoding.DecodeString(rawImage)
+		img, err = jpeg.Decode(bytes.NewReader(decoded))
+	} else if strings.HasPrefix(mData.Photo, pngPrefix) {
+		rawImage := mData.Photo[len(pngPrefix):]
+		decoded, _ := base64.StdEncoding.DecodeString(rawImage)
+		img, err = png.Decode(bytes.NewReader(decoded))
+	} else {
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid file format"})
+		return
+	}
+	imgPath := "uploads/meetingpics/" + strconv.Itoa(newInd) + ".png"
+
+	f, err := os.OpenFile(imgPath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to create file"})
+		return
+	}
+	defer f.Close()
+	err = png.Encode(f, img)
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to save file"})
+		return
+	}
+
+	meeting := &Meeting{
+		Id:     newInd,
+		Title:  mData.Name,
+		Text:   mData.Description,
+		ImgSrc: imgPath,
+		Tags:   mData.Tags,
+		Place:  mData.City + ", " + mData.Address,
+		Date:   strings.Replace(mData.Start, " ", "", -1),
+	}
+	MeetingStorage[newInd] = meeting
+	w.WriteHeader(http.StatusCreated)
+}
+
 func main() {
 	r := mux.NewRouter()
-	r.HandleFunc("/meetings", GetMeetings).Methods("GET")
-	r.HandleFunc("/people", GetPeople).Methods("GET")
-	r.HandleFunc("/user", GetUser).Methods("GET")
-	r.HandleFunc("/user", EditUser).Methods("POST")
-	r.HandleFunc("/me", GetUserId).Methods("GET")
-	r.HandleFunc("/login", LogIn).Methods("POST")
-	r.HandleFunc("/logout", LogOut).Methods("POST")
-	r.HandleFunc("/signup", SignUp).Methods("POST")
-	r.HandleFunc("/images", UploadUserPic).Methods("POST")
+	r.HandleFunc("/api/meetings", GetMeetings).Methods("GET")
+	r.HandleFunc("/api/meeting", CreateMeeting).Methods("POST")
+	r.HandleFunc("/api/people", GetPeople).Methods("GET")
+	r.HandleFunc("/api/user", GetUser).Methods("GET")
+	r.HandleFunc("/api/user", EditUser).Methods("POST")
+	r.HandleFunc("/api/me", GetUserId).Methods("GET")
+	r.HandleFunc("/api/login", LogIn).Methods("POST")
+	r.HandleFunc("/api/logout", LogOut).Methods("POST")
+	r.HandleFunc("/api/signup", SignUp).Methods("POST")
+	r.HandleFunc("/api/images", UploadUserPic).Methods("POST")
 
 	r.PathPrefix("/uploads/").HandlerFunc(serveUploads)
 	r.PathPrefix("/").HandlerFunc(serveStatic)
