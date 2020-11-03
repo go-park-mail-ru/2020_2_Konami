@@ -33,6 +33,8 @@ type Meeting struct {
 	Tags   []string `json:"tags"`
 	Place  string   `json:"place"`
 	Date   string   `json:"date"`
+	Like   bool     `json:"like"`
+	Reg    bool     `json:"reg"`
 }
 
 type UserUpdate struct {
@@ -190,6 +192,78 @@ var CredStorage = map[string]*Credentials{
 		Password: "$2a$04$7aVIDD36QgWr2L6iFgHGtesm0elmggbTryERfPruKS1e9R8CHadHi",
 		uId:      1,
 	},
+}
+
+// userID -> Liked meetings
+var Likes = map[int][]int{
+	0: []int{0},
+}
+
+// userID -> Liked meetings
+var Registrations = map[int][]int{
+	0: []int{0},
+}
+
+func contains(s []int, target int) bool {
+	for _, el := range s {
+		if el == target {
+			return true
+		}
+	}
+	return false
+}
+
+func remove(s []int, target int) bool {
+	for i, el := range s {
+		if el == target {
+			s = append(s[:i], s[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+func UserLikes(userId, meetId int) bool {
+	userLikes, lOk := Likes[userId]
+	if lOk && contains(userLikes, meetId) {
+		return true
+	}
+	return false
+}
+
+func SetEl(userId, meetId int, storage map[int][]int) {
+	userElements, lOk := storage[userId]
+	if !lOk {
+		storage[userId] = []int{meetId}
+	}
+	if lOk && !contains(userElements, meetId) {
+		userElements = append(userElements, meetId)
+	}
+}
+
+func RemoveEl(userId, meetId int, storage map[int][]int) {
+	userElements, lOk := storage[userId]
+	if lOk {
+		remove(userElements, meetId)
+	}
+}
+
+func UserRegistered(userId, meetId int) bool {
+	userRegs, rOk := Registrations[userId]
+	if rOk && contains(userRegs, meetId) {
+		return true
+	}
+	return false
+}
+
+type MeetUpdateFields struct {
+	Reg  bool `json:"reg"`
+	Like bool `json:"like"`
+}
+
+type MeetingUpdate struct {
+	MeetId int               `json:"meetId"`
+	Fields *MeetUpdateFields `json:"fields"`
 }
 
 func CommitUserUpdate(data *UserUpdate, usr *User) bool {

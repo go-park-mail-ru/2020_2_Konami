@@ -45,7 +45,7 @@ func CreateSession(w http.ResponseWriter, uId int) {
 	Sessions[token] = uId
 }
 
-func GetMeetings(w http.ResponseWriter, r *http.Request) {
+func GetMeetingsList(w http.ResponseWriter, r *http.Request) {
 	meetings := make([]*Meeting, len(MeetingStorage))
 	i := 0
 	for _, value := range MeetingStorage {
@@ -200,7 +200,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	creds.uId = newInd
 	UserStorage[newInd] = &User{
 		Id:           newInd,
-		ImgSrc:       "assets/luckash.jpeg",
+		ImgSrc:       "assets/empty-avatar.jpeg",
 		InterestTags: []string{},
 		SkillTags:    []string{},
 		Meetings:     []*Meeting{},
@@ -286,36 +286,43 @@ func CreateMeeting(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	// TODO: separate image handling
-	jpegPrefix := "data:image/jpeg;base64,"
-	pngPrefix := "data:image/png;base64,"
-	var img image.Image
-	err = nil
-	if strings.HasPrefix(mData.Photo, jpegPrefix) {
-		rawImage := mData.Photo[len(jpegPrefix):]
-		decoded, _ := base64.StdEncoding.DecodeString(rawImage)
-		img, err = jpeg.Decode(bytes.NewReader(decoded))
-	} else if strings.HasPrefix(mData.Photo, pngPrefix) {
-		rawImage := mData.Photo[len(pngPrefix):]
-		decoded, _ := base64.StdEncoding.DecodeString(rawImage)
-		img, err = png.Decode(bytes.NewReader(decoded))
-	} else {
-		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid file format"})
-		return
-	}
-	imgPath := "uploads/meetingpics/" + strconv.Itoa(newInd) + ".png"
+	imgPath := "assets/paris.jpg"
+	if len(mData.Photo) != 0 {
+		// TODO: separate image handling
+		jpegPrefix := "data:image/jpeg;base64,"
+		pngPrefix := "data:image/png;base64,"
+		var img image.Image
+		err = nil
+		if strings.HasPrefix(mData.Photo, jpegPrefix) {
+			rawImage := mData.Photo[len(jpegPrefix):]
+			decoded, _ := base64.StdEncoding.DecodeString(rawImage)
+			img, err = jpeg.Decode(bytes.NewReader(decoded))
+		} else if strings.HasPrefix(mData.Photo, pngPrefix) {
+			rawImage := mData.Photo[len(pngPrefix):]
+			decoded, _ := base64.StdEncoding.DecodeString(rawImage)
+			img, err = png.Decode(bytes.NewReader(decoded))
+		} else {
+			WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid file format"})
+			return
+		}
+		imgPath = "uploads/meetingpics/" + strconv.Itoa(newInd) + ".png"
 
-	f, err := os.OpenFile(imgPath, os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to create file"})
-		return
+		f, err := os.OpenFile(imgPath, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to create file"})
+			return
+		}
+		defer f.Close()
+		err = png.Encode(f, img)
+		if err != nil {
+			WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to save file"})
+			return
+		}
 	}
-	defer f.Close()
-	err = png.Encode(f, img)
-	if err != nil {
-		WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to save file"})
-		return
-	}
+
+	dateTrimmed := strings.Replace(mData.Start, " ", "", -1)
+	lastSep := strings.LastIndex(dateTrimmed, "-")
+	timeSep := strings.LastIndex(dateTrimmed[:lastSep], "-")
 
 	meeting := &Meeting{
 		Id:     newInd,
@@ -324,16 +331,88 @@ func CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		ImgSrc: imgPath,
 		Tags:   mData.Tags,
 		Place:  mData.City + ", " + mData.Address,
-		Date:   strings.Replace(mData.Start, " ", "", -1),
+		Date:   dateTrimmed[:timeSep],
+	}
+	if meeting.Tags == nil {
+		meeting.Tags = []string{}
 	}
 	MeetingStorage[newInd] = meeting
 	w.WriteHeader(http.StatusCreated)
 }
 
+func GetMeeting(w http.ResponseWriter, r *http.Request) {
+	meetId, err := strconv.Atoi(r.URL.Query().Get("meetId"))
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusNotFound, "user id not found"})
+		return
+	}
+	meeting, ok := MeetingStorage[meetId]
+	if !ok {
+		WriteError(w, &ErrResponse{http.StatusNotFound, "profile not found"})
+		return
+	}
+	userId := -1
+	session, err := r.Cookie("authToken")
+	if err == nil {
+		userId, ok = Sessions[session.Value]
+		if !ok {
+			userId = -1
+		}
+	}
+	if userId != -1 {
+		meeting.Like = UserLikes(userId, meetId)
+		meeting.Reg = UserRegistered(userId, meetId)
+	}
+	WriteJson(w, meeting)
+}
+
+func UpdateMeeting(w http.ResponseWriter, r *http.Request) {
+	session, err := r.Cookie("authToken")
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+		return
+	}
+	userId, ok := Sessions[session.Value]
+	if !ok {
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+		return
+	}
+	mData := &MeetingUpdate{}
+	buf := new(strings.Builder)
+	_, err = io.Copy(buf, r.Body)
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
+		return
+	}
+	mStr := buf.String()
+	err = json.Unmarshal([]byte(mStr), &mData)
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
+		return
+	}
+	if strings.Contains(mStr, "like") {
+		if mData.Fields.Like {
+			SetEl(userId, mData.MeetId, Likes)
+		} else {
+			RemoveEl(userId, mData.MeetId, Likes)
+		}
+	}
+	if strings.Contains(mStr, "reg") {
+		if mData.Fields.Reg {
+			SetEl(userId, mData.MeetId, Registrations)
+		} else {
+			RemoveEl(userId, mData.MeetId, Registrations)
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func main() {
 	r := mux.NewRouter()
-	r.HandleFunc("/api/meetings", GetMeetings).Methods("GET")
+	r.HandleFunc("/api/meetings", GetMeetingsList).Methods("GET")
 	r.HandleFunc("/api/meeting", CreateMeeting).Methods("POST")
+	r.HandleFunc("/api/meet", GetMeeting).Methods("GET")
+	r.HandleFunc("/api/meet", UpdateMeeting).Methods("POST")
 	r.HandleFunc("/api/people", GetPeople).Methods("GET")
 	r.HandleFunc("/api/user", GetUser).Methods("GET")
 	r.HandleFunc("/api/user", EditUser).Methods("POST")
@@ -344,7 +423,6 @@ func main() {
 	r.HandleFunc("/api/images", UploadUserPic).Methods("POST")
 
 	r.PathPrefix("/uploads/").HandlerFunc(serveUploads)
-	r.PathPrefix("/").HandlerFunc(serveStatic)
 
 	port := os.Getenv("PORT")
 	if port == "" {
