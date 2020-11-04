@@ -71,7 +71,7 @@ type MeetingUpload struct {
 	End         string   `json:"end"`
 	Description string   `json:"meet-description"`
 	Tags        []string `json:"meetingTags"`
-	Name        string   `json:"title"`
+	Name        string   `json:"name"`
 	Photo       string   `json:"photo"`
 }
 
@@ -213,16 +213,6 @@ func contains(s []int, target int) bool {
 	return false
 }
 
-func remove(s []int, target int) bool {
-	for i, el := range s {
-		if el == target {
-			s = append(s[:i], s[i+1:]...)
-			return true
-		}
-	}
-	return false
-}
-
 func UserLikes(userId, meetId int) bool {
 	userLikes, lOk := Likes[userId]
 	if lOk && contains(userLikes, meetId) {
@@ -237,14 +227,18 @@ func SetEl(userId, meetId int, storage map[int][]int) {
 		storage[userId] = []int{meetId}
 	}
 	if lOk && !contains(userElements, meetId) {
-		userElements = append(userElements, meetId)
+		storage[userId] = append(userElements, meetId)
 	}
 }
 
 func RemoveEl(userId, meetId int, storage map[int][]int) {
 	userElements, lOk := storage[userId]
 	if lOk {
-		remove(userElements, meetId)
+		for i, el := range userElements {
+			if el == meetId {
+				storage[userId] = append(userElements[:i], userElements[i+1:]...)
+			}
+		}
 	}
 }
 
