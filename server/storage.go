@@ -276,25 +276,30 @@ func UserLikes(userId, meetId int) bool {
 	return false
 }
 
-func SetEl(userId, meetId int, storage map[int][]int) {
+func SetEl(userId, meetId int, storage map[int][]int) bool {
 	userElements, lOk := storage[userId]
 	if !lOk {
 		storage[userId] = []int{meetId}
+		return true
 	}
-	if lOk && !contains(userElements, meetId) {
+	if !contains(userElements, meetId) {
 		storage[userId] = append(userElements, meetId)
+		return true
 	}
+	return false
 }
 
-func RemoveEl(userId, meetId int, storage map[int][]int) {
+func RemoveEl(userId, meetId int, storage map[int][]int) bool {
 	userElements, lOk := storage[userId]
 	if lOk {
 		for i, el := range userElements {
 			if el == meetId {
 				storage[userId] = append(userElements[:i], userElements[i+1:]...)
+				return true
 			}
 		}
 	}
+	return false
 }
 
 func UserRegistered(userId, meetId int) bool {

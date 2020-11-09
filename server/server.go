@@ -427,10 +427,6 @@ func UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
 		return
 	}
-	if meeting.StartDate < time.Now().Format("2006-01-02 15:04:05") {
-		WriteError(w, &ErrResponse{http.StatusConflict, "meeting has already started"})
-		return
-	}
 	if strings.Contains(mStr, "isLiked") {
 		if mData.Fields.Like {
 			SetEl(userId, mData.MeetId, Likes)
@@ -439,15 +435,25 @@ func UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if strings.Contains(mStr, "isRegistered") {
+		if meeting.StartDate < time.Now().Format("2006-01-02 15:04:05") {
+			WriteError(w, &ErrResponse{http.StatusConflict, "meeting has already started"})
+			return
+		}
+		regSuccess := false
 		if mData.Fields.Reg {
-			if meeting.SeatsLeft == 0 {
-				WriteError(w, &ErrResponse{http.StatusConflict, "no more vacant seats left"})
-				return
+			if meeting.SeatsLeft != 0 && SetEl(userId, mData.MeetId, Registrations) {
+				meeting.SeatsLeft -= 1
+				regSuccess = true
 			}
-			SetEl(userId, mData.MeetId, Registrations)
 		} else {
-			RemoveEl(userId, mData.MeetId, Registrations)
-			meeting.SeatsLeft += 1
+			if RemoveEl(userId, mData.MeetId, Registrations) {
+				meeting.SeatsLeft += 1
+				regSuccess = true
+			}
+		}
+		if !regSuccess {
+			WriteError(w, &ErrResponse{http.StatusConflict, "unable to change registration status"})
+			return
 		}
 	}
 	w.WriteHeader(http.StatusOK)
