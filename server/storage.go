@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 type User struct {
@@ -320,8 +321,16 @@ func CommitUserUpdate(data *UserUpdate, usr *User) bool {
 		`|[13579][26])|(?:[2468][048]|[13579][26])00)-02-29)$`)
 	reEmail := regexp.MustCompile(`^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@` +
 		`((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$`)
-	if data.Birthday != nil && *data.Birthday != "" && !ISOdt.MatchString(*data.Birthday) {
-		return false
+	if data.Birthday != nil {
+		bDay := *data.Birthday
+		tInd := strings.Index(bDay, "T")
+		if tInd != -1 {
+			bDay = bDay[:tInd]
+		}
+		if !ISOdt.MatchString(bDay) {
+			return false
+		}
+		usr.Birthday = bDay
 	}
 	if data.Gender != nil && *data.Gender != "M" && *data.Gender != "F" && *data.Gender != "" {
 		return false

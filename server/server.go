@@ -17,7 +17,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -299,7 +298,7 @@ func CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mData := &MeetingUpload{}
-	err = json.NewDecoder(r.Body).Decode(&mData)
+	err = json.NewDecoder(http.MaxBytesReader(w, r.Body, 10*1024*1024)).Decode(&mData)
 	if err != nil {
 		log.Println(err)
 		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
@@ -358,6 +357,8 @@ func CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		Place:     mData.City + ", " + mData.Address,
 		StartDate: stDateTrimmed,
 		EndDate:   endDateTrimmed,
+		Seats:     100500,
+		SeatsLeft: 100500,
 	}
 	if meeting.Tags == nil {
 		meeting.Tags = []string{}
@@ -467,8 +468,6 @@ func main() {
 	r.HandleFunc("/api/signup", SignUp).Methods("POST")
 	r.HandleFunc("/api/images", UploadUserPic).Methods("POST")
 
-	r.PathPrefix("/uploads/").HandlerFunc(serveUploads)
-
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8001"
@@ -504,15 +503,6 @@ func main() {
 }
 
 func serveStatic(w http.ResponseWriter, r *http.Request) {
-	const staticPath = "static"
-	fPath := path.Join(staticPath, "index.html")
-	if r.URL.Path != "/" {
-		fPath = path.Join(staticPath, r.URL.Path)
-	}
-	http.ServeFile(w, r, fPath)
-}
-
-func serveUploads(w http.ResponseWriter, r *http.Request) {
 	relPath := strings.TrimPrefix(r.URL.Path, "/")
 	http.ServeFile(w, r, relPath)
 }
