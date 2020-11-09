@@ -1,17 +1,22 @@
 package main
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"io"
 	"log"
 	"math/rand"
 	"net"
 	"net/http"
 	"os"
-	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,12 +45,36 @@ func CreateSession(w http.ResponseWriter, uId int) {
 	Sessions[token] = uId
 }
 
-func GetMeetings(w http.ResponseWriter, r *http.Request) {
-	meetings := make([]*Meeting, len(MeetingStorage))
-	i := 0
+func GetMeetingsList(w http.ResponseWriter, r *http.Request) {
+	var meetings []*Meeting
+	todayOnly := r.URL.Query().Get("today") == "true"
+	tomorrowOnly := r.URL.Query().Get("tomorrow") == "true"
+	myOnly := r.URL.Query().Get("mymeetings") == "true"
+	favOnly := r.URL.Query().Get("favorites") == "true"
+	currentTime := time.Now()
+	today := currentTime.Format("2006-01-02")
+	tomorrow := currentTime.Add(24 * time.Hour).Format("2006-01-02")
+
+	var userId int
+	if myOnly || favOnly {
+		session, err := r.Cookie("authToken")
+		var ok bool
+		userId, ok = Sessions[session.Value]
+		if err != nil || !ok {
+			WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+			return
+		}
+	}
+
 	for _, value := range MeetingStorage {
-		meetings[i] = value
-		i++
+		mDate := value.StartDate[:strings.Index(value.StartDate, " ")]
+		if todayOnly && mDate == today ||
+			tomorrowOnly && mDate == tomorrow ||
+			myOnly && UserRegistered(userId, value.Id) ||
+			favOnly && UserLikes(userId, value.Id) ||
+			!todayOnly && !tomorrowOnly && !myOnly && !favOnly {
+			meetings = append(meetings, value)
+		}
 	}
 	if len(meetings) == 0 {
 		WriteError(w, &ErrResponse{http.StatusNotFound, "no meetings found"})
@@ -195,10 +224,10 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 	creds.uId = newInd
 	UserStorage[newInd] = &User{
 		Id:           newInd,
-		ImgSrc:       "assets/luckash.jpeg",
+		ImgSrc:       "assets/empty-avatar.jpeg",
 		InterestTags: []string{},
 		SkillTags:    []string{},
-		Meetings:     []*Meeting{},
+		Meetings:     []*UserMeeting{},
 	}
 	CredStorage[creds.Login] = &creds
 	CreateSession(w, newInd)
@@ -234,8 +263,9 @@ func UploadUserPic(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 	fname := strings.Split(handler.Filename, ".")
 	ext := fname[len(fname)-1]
-	if ext != "jpg" && ext != "jpeg" && ext != "png" && ext != "gif" {
+	if ext != "jpg" && ext != "jpeg" && ext != "png" {
 		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid file format"})
+		return
 	}
 	imgPath := "uploads/userpics/" + strconv.Itoa(userId) + "." + ext
 
@@ -255,24 +285,198 @@ func UploadUserPic(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func CreateMeeting(w http.ResponseWriter, r *http.Request) {
+	session, err := r.Cookie("authToken")
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+		return
+	}
+	userId, sOk := Sessions[session.Value]
+	author, uOk := UserStorage[userId]
+	if !sOk || !uOk {
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+		return
+	}
+	mData := &MeetingUpload{}
+	err = json.NewDecoder(http.MaxBytesReader(w, r.Body, 10*1024*1024)).Decode(&mData)
+	if err != nil {
+		log.Println(err)
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
+		return
+	}
+	newInd := rand.Intn(1 << 30)
+	for ; ; newInd = rand.Int() {
+		_, existsMeeting := MeetingStorage[newInd]
+		if !existsMeeting {
+			break
+		}
+	}
+	imgPath := "assets/paris.jpg"
+	if len(mData.Photo) != 0 {
+		// TODO: separate image handling
+		jpegPrefix := "data:image/jpeg;base64,"
+		pngPrefix := "data:image/png;base64,"
+		var img image.Image
+		err = nil
+		if strings.HasPrefix(mData.Photo, jpegPrefix) {
+			rawImage := mData.Photo[len(jpegPrefix):]
+			decoded, _ := base64.StdEncoding.DecodeString(rawImage)
+			img, err = jpeg.Decode(bytes.NewReader(decoded))
+		} else if strings.HasPrefix(mData.Photo, pngPrefix) {
+			rawImage := mData.Photo[len(pngPrefix):]
+			decoded, _ := base64.StdEncoding.DecodeString(rawImage)
+			img, err = png.Decode(bytes.NewReader(decoded))
+		} else {
+			WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid file format"})
+			return
+		}
+		imgPath = "uploads/meetingpics/" + strconv.Itoa(newInd) + ".png"
+
+		f, err := os.OpenFile(imgPath, os.O_WRONLY|os.O_CREATE, 0666)
+		if err != nil {
+			WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to create file"})
+			return
+		}
+		defer f.Close()
+		err = png.Encode(f, img)
+		if err != nil {
+			WriteError(w, &ErrResponse{http.StatusInternalServerError, "unable to save file"})
+			return
+		}
+	}
+
+	stDateTrimmed := strings.Replace(mData.Start, "T", " ", -1)
+	endDateTrimmed := strings.Replace(mData.End, "T", " ", -1)
+	meeting := &Meeting{
+		Id:        newInd,
+		AuthorId:  userId,
+		Title:     mData.Name,
+		Text:      mData.Description,
+		ImgSrc:    imgPath,
+		Tags:      mData.Tags,
+		Place:     mData.City + ", " + mData.Address,
+		StartDate: stDateTrimmed,
+		EndDate:   endDateTrimmed,
+		Seats:     100500,
+		SeatsLeft: 100500,
+	}
+	if meeting.Tags == nil {
+		meeting.Tags = []string{}
+	}
+	MeetingStorage[newInd] = meeting
+	author.Meetings = append(author.Meetings, &UserMeeting{
+		Title:  mData.Name,
+		ImgSrc: imgPath,
+		Link:   fmt.Sprintf("/meet?meetId=%d", newInd),
+	})
+	w.WriteHeader(http.StatusCreated)
+}
+
+func GetMeeting(w http.ResponseWriter, r *http.Request) {
+	meetId, err := strconv.Atoi(r.URL.Query().Get("meetId"))
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusNotFound, "user id not found"})
+		return
+	}
+	meeting, ok := MeetingStorage[meetId]
+	if !ok {
+		WriteError(w, &ErrResponse{http.StatusNotFound, "profile not found"})
+		return
+	}
+	userId := -1
+	session, err := r.Cookie("authToken")
+	if err == nil {
+		userId, ok = Sessions[session.Value]
+		if !ok {
+			userId = -1
+		}
+	}
+	if userId != -1 {
+		meeting.Like = UserLikes(userId, meetId)
+		meeting.Reg = UserRegistered(userId, meetId)
+	}
+	WriteJson(w, meeting)
+}
+
+func UpdateMeeting(w http.ResponseWriter, r *http.Request) {
+	session, err := r.Cookie("authToken")
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+		return
+	}
+	userId, ok := Sessions[session.Value]
+	if !ok {
+		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+		return
+	}
+	mData := &MeetingUpdate{}
+	buf := new(strings.Builder)
+	_, err = io.Copy(buf, r.Body)
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
+		return
+	}
+	mStr := buf.String()
+	err = json.Unmarshal([]byte(mStr), &mData)
+	if err != nil {
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
+		return
+	}
+	meeting, exists := MeetingStorage[mData.MeetId]
+	if !exists {
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
+		return
+	}
+	if strings.Contains(mStr, "isLiked") {
+		if mData.Fields.Like {
+			SetEl(userId, mData.MeetId, Likes)
+		} else {
+			RemoveEl(userId, mData.MeetId, Likes)
+		}
+	}
+	if strings.Contains(mStr, "isRegistered") {
+		if meeting.StartDate < time.Now().Format("2006-01-02 15:04:05") {
+			WriteError(w, &ErrResponse{http.StatusConflict, "meeting has already started"})
+			return
+		}
+		regSuccess := false
+		if mData.Fields.Reg {
+			if meeting.SeatsLeft != 0 && SetEl(userId, mData.MeetId, Registrations) {
+				meeting.SeatsLeft -= 1
+				regSuccess = true
+			}
+		} else {
+			if RemoveEl(userId, mData.MeetId, Registrations) {
+				meeting.SeatsLeft += 1
+				regSuccess = true
+			}
+		}
+		if !regSuccess {
+			WriteError(w, &ErrResponse{http.StatusConflict, "unable to change registration status"})
+			return
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func main() {
 	r := mux.NewRouter()
-	r.HandleFunc("/meetings", GetMeetings).Methods("GET")
-	r.HandleFunc("/people", GetPeople).Methods("GET")
-	r.HandleFunc("/user", GetUser).Methods("GET")
-	r.HandleFunc("/user", EditUser).Methods("POST")
-	r.HandleFunc("/me", GetUserId).Methods("GET")
-	r.HandleFunc("/login", LogIn).Methods("POST")
-	r.HandleFunc("/logout", LogOut).Methods("POST")
-	r.HandleFunc("/signup", SignUp).Methods("POST")
-	r.HandleFunc("/images", UploadUserPic).Methods("POST")
-
-	r.PathPrefix("/uploads/").HandlerFunc(serveUploads)
-	r.PathPrefix("/").HandlerFunc(serveStatic)
+	r.HandleFunc("/api/meetings", GetMeetingsList).Methods("GET")
+	r.HandleFunc("/api/meeting", CreateMeeting).Methods("POST")
+	r.HandleFunc("/api/meet", GetMeeting).Methods("GET")
+	r.HandleFunc("/api/meet", UpdateMeeting).Methods("POST")
+	r.HandleFunc("/api/people", GetPeople).Methods("GET")
+	r.HandleFunc("/api/user", GetUser).Methods("GET")
+	r.HandleFunc("/api/user", EditUser).Methods("POST")
+	r.HandleFunc("/api/me", GetUserId).Methods("GET")
+	r.HandleFunc("/api/login", LogIn).Methods("POST")
+	r.HandleFunc("/api/logout", LogOut).Methods("POST")
+	r.HandleFunc("/api/signup", SignUp).Methods("POST")
+	r.HandleFunc("/api/images", UploadUserPic).Methods("POST")
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "80"
+		port = "8001"
 	}
 	certFile := os.Getenv("CERTFILE")
 	if certFile == "" {
@@ -305,15 +509,6 @@ func main() {
 }
 
 func serveStatic(w http.ResponseWriter, r *http.Request) {
-	const staticPath = "static"
-	fPath := path.Join(staticPath, "index.html")
-	if r.URL.Path != "/" {
-		fPath = path.Join(staticPath, r.URL.Path)
-	}
-	http.ServeFile(w, r, fPath)
-}
-
-func serveUploads(w http.ResponseWriter, r *http.Request) {
 	relPath := strings.TrimPrefix(r.URL.Path, "/")
 	http.ServeFile(w, r, relPath)
 }

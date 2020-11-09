@@ -24,7 +24,7 @@ func TestGetMeetings(t *testing.T) {
 	urlTest := URL + "/meetings"
 	req := httptest.NewRequest("GET", urlTest, nil)
 	w := httptest.NewRecorder()
-	GetMeetings(w, req)
+	GetMeetingsList(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Wrong StatusCode: got %d, expected %d",
@@ -34,14 +34,14 @@ func TestGetMeetings(t *testing.T) {
 	resp := w.Result()
 	body, _ := ioutil.ReadAll(resp.Body)
 	bodyStr := string(body)
-/*
-	fmt.Println(bodyStr)
-	resArr := make([]string, 1)
-	res, _ := json.Marshal(MeetingStorage[0])
-	fmt.Println(string(res))
-	resArr = append(resArr, string(res))
-	fmt.Println(resArr)
-*/
+	/*
+		fmt.Println(bodyStr)
+		resArr := make([]string, 1)
+		res, _ := json.Marshal(MeetingStorage[0])
+		fmt.Println(string(res))
+		resArr = append(resArr, string(res))
+		fmt.Println(resArr)
+	*/
 	if bodyStr != waitRes {
 		t.Errorf("Wrong Response: got %+v, expected %+v",
 			bodyStr, bodyStr)
@@ -75,17 +75,17 @@ func TestGetUser(t *testing.T) {
 
 	cases := []TestCase{
 		TestCase{
-			Param:    `0`,
-			Response: "{\"id\":0,\"name\":\"Александр\",\"gender\":\"M\",\"birthday\":\"1990-09-12\",\"city\":\"Нурсултан\",\"email\":\"lucash@mail.ru\",\"telegram\":\"\",\"vk\":\"https://vk.com/id241926559\",\"meetingTags\":[\"RandomTag1\",\"RandomTag5\"],\"education\":\"МГТУ им. Н. Э. Баумана до 2010\",\"job\":\"MAIL RU GROUP\",\"imgSrc\":\"assets/luckash.jpeg\",\"aims\":\"Хочу от жизни всего\",\"interestTags\":[\"Шыпшына\",\"Бульба\"],\"interests\":\"Люблю, когда встаешь утром, а на столе #Шыпшына и #Бульба\",\"skillTags\":[\"Мелиорация\"],\"skills\":\"#Мелиорация - это моя жизнь\",\"meetings\":[]}\n",
+			Param:      `0`,
+			Response:   "{\"id\":0,\"name\":\"Александр\",\"gender\":\"M\",\"birthday\":\"1990-09-12\",\"city\":\"Нурсултан\",\"email\":\"lucash@mail.ru\",\"telegram\":\"\",\"vk\":\"https://vk.com/id241926559\",\"meetingTags\":[\"RandomTag1\",\"RandomTag5\"],\"education\":\"МГТУ им. Н. Э. Баумана до 2010\",\"job\":\"MAIL RU GROUP\",\"imgSrc\":\"assets/luckash.jpeg\",\"aims\":\"Хочу от жизни всего\",\"interestTags\":[\"Шыпшына\",\"Бульба\"],\"interests\":\"Люблю, когда встаешь утром, а на столе #Шыпшына и #Бульба\",\"skillTags\":[\"Мелиорация\"],\"skills\":\"#Мелиорация - это моя жизнь\",\"meetings\":[]}\n",
 			StatusCode: http.StatusOK,
 		},
 		TestCase{
-			Param:       `2`,
+			Param:      `2`,
 			Response:   `{"error": "profile not found"}`,
 			StatusCode: http.StatusNotFound,
 		},
 		TestCase{
-			Param:         ``,
+			Param:      ``,
 			Response:   `{"error": "user id not found"}`,
 			StatusCode: http.StatusNotFound,
 		},
@@ -210,15 +210,15 @@ func TestEditUser(t *testing.T) {
 	urlTest := URL + "/user"
 	testStr := "test"
 	credit := UserUpdate{
-		Name:        &testStr,
-		City:        &testStr,
-		Telegram:    &testStr,
-		Vk:          &testStr,
-		Education:   &testStr,
-		Job:         &testStr,
-		Aims:        &testStr,
-		Interests:   &testStr,
-		Skills:      &testStr,
+		Name:      &testStr,
+		City:      &testStr,
+		Telegram:  &testStr,
+		Vk:        &testStr,
+		Education: &testStr,
+		Job:       &testStr,
+		Aims:      &testStr,
+		Interests: &testStr,
+		Skills:    &testStr,
 	}
 
 	jsonData, _ := json.Marshal(credit)
