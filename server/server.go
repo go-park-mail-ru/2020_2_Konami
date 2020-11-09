@@ -204,7 +204,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		ImgSrc:       "assets/empty-avatar.jpeg",
 		InterestTags: []string{},
 		SkillTags:    []string{},
-		Meetings:     []*Meeting{},
+		Meetings:     []*UserMeeting{},
 	}
 	CredStorage[creds.Login] = &creds
 	CreateSession(w, newInd)
