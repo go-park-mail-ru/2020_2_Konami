@@ -47,11 +47,35 @@ func CreateSession(w http.ResponseWriter, uId int) {
 }
 
 func GetMeetingsList(w http.ResponseWriter, r *http.Request) {
-	meetings := make([]*Meeting, len(MeetingStorage))
-	i := 0
+	var meetings []*Meeting
+	todayOnly := r.URL.Query().Get("today") == "true"
+	tomorrowOnly := r.URL.Query().Get("tomorrow") == "true"
+	myOnly := r.URL.Query().Get("mymeetings") == "true"
+	favOnly := r.URL.Query().Get("favorites") == "true"
+	currentTime := time.Now()
+	today := currentTime.Format("2006-01-02")
+	tomorrow := currentTime.Add(24 * time.Hour).Format("2006-01-02")
+
+	var userId int
+	if myOnly || favOnly {
+		session, err := r.Cookie("authToken")
+		var ok bool
+		userId, ok = Sessions[session.Value]
+		if err != nil || !ok {
+			WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
+			return
+		}
+	}
+
 	for _, value := range MeetingStorage {
-		meetings[i] = value
-		i++
+		mDate := value.StartDate[:strings.Index(value.StartDate, " ")]
+		if todayOnly && mDate == today ||
+			tomorrowOnly && mDate == tomorrow ||
+			myOnly && UserRegistered(userId, value.Id) ||
+			favOnly && UserLikes(userId, value.Id) ||
+			!todayOnly && !tomorrowOnly && !myOnly && !favOnly {
+			meetings = append(meetings, value)
+		}
 	}
 	if len(meetings) == 0 {
 		WriteError(w, &ErrResponse{http.StatusNotFound, "no meetings found"})
@@ -322,18 +346,18 @@ func CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	dateTrimmed := strings.Replace(mData.Start, " ", "", -1)
-	timeSep := strings.Index(dateTrimmed, "T")
-
+	stDateTrimmed := strings.Replace(mData.Start, "T", " ", -1)
+	endDateTrimmed := strings.Replace(mData.End, "T", " ", -1)
 	meeting := &Meeting{
-		Id:       newInd,
-		AuthorId: userId,
-		Title:    mData.Name,
-		Text:     mData.Description,
-		ImgSrc:   imgPath,
-		Tags:     mData.Tags,
-		Place:    mData.City + ", " + mData.Address,
-		Date:     dateTrimmed[:timeSep],
+		Id:        newInd,
+		AuthorId:  userId,
+		Title:     mData.Name,
+		Text:      mData.Description,
+		ImgSrc:    imgPath,
+		Tags:      mData.Tags,
+		Place:     mData.City + ", " + mData.Address,
+		StartDate: stDateTrimmed,
+		EndDate:   endDateTrimmed,
 	}
 	if meeting.Tags == nil {
 		meeting.Tags = []string{}
@@ -397,18 +421,32 @@ func UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
 		return
 	}
-	if strings.Contains(mStr, "like") {
+	meeting, exists := MeetingStorage[mData.MeetId]
+	if !exists {
+		WriteError(w, &ErrResponse{http.StatusBadRequest, "invalid request body"})
+		return
+	}
+	if meeting.StartDate < time.Now().Format("2006-01-02 15:04:05") {
+		WriteError(w, &ErrResponse{http.StatusConflict, "meeting has already started"})
+		return
+	}
+	if strings.Contains(mStr, "isLiked") {
 		if mData.Fields.Like {
 			SetEl(userId, mData.MeetId, Likes)
 		} else {
 			RemoveEl(userId, mData.MeetId, Likes)
 		}
 	}
-	if strings.Contains(mStr, "reg") {
+	if strings.Contains(mStr, "isRegistered") {
 		if mData.Fields.Reg {
+			if meeting.SeatsLeft == 0 {
+				WriteError(w, &ErrResponse{http.StatusConflict, "no more vacant seats left"})
+				return
+			}
 			SetEl(userId, mData.MeetId, Registrations)
 		} else {
 			RemoveEl(userId, mData.MeetId, Registrations)
+			meeting.SeatsLeft += 1
 		}
 	}
 	w.WriteHeader(http.StatusOK)

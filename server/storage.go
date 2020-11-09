@@ -27,16 +27,19 @@ type User struct {
 }
 
 type Meeting struct {
-	Id       int      `json:"id"`
-	AuthorId int      `json:"authorId"`
-	Title    string   `json:"title"`
-	Text     string   `json:"text"`
-	ImgSrc   string   `json:"imgSrc"`
-	Tags     []string `json:"tags"`
-	Place    string   `json:"place"`
-	Date     string   `json:"date"`
-	Like     bool     `json:"like"`
-	Reg      bool     `json:"reg"`
+	Id        int      `json:"id"`
+	AuthorId  int      `json:"authorId"`
+	Title     string   `json:"title"`
+	Text      string   `json:"text"`
+	ImgSrc    string   `json:"imgSrc"`
+	Tags      []string `json:"tags"`
+	Place     string   `json:"place"`
+	StartDate string   `json:"startDate"`
+	EndDate   string   `json:"endDate"`
+	Seats     int      `json:"seats"`
+	SeatsLeft int      `json:"seatsLeft"`
+	Like      bool     `json:"isLiked"`
+	Reg       bool     `json:"isRegistered"`
 }
 
 type UserUpdate struct {
@@ -114,7 +117,7 @@ func (m MeetingsByDate) Swap(i, j int) {
 }
 
 func (m MeetingsByDate) Less(i, j int) bool {
-	return m[i].Date < m[j].Date
+	return m[i].StartDate < m[j].StartDate
 }
 
 var MeetingStorage = map[int]*Meeting{
@@ -128,10 +131,13 @@ var MeetingStorage = map[int]*Meeting{
 			"labore et dolore magna aliqua. " +
 			"Ut enim ad minim veniam, quis " +
 			"nostrud exercitation ullamco labori",
-		ImgSrc: "assets/paris.jpg",
-		Tags:   []string{"C++"},
-		Place:  "Москва, улица Колотушкина, дом Пушкина",
-		Date:   "2020-11-10",
+		ImgSrc:    "assets/paris.jpg",
+		Tags:      []string{"C++"},
+		Place:     "Москва, улица Колотушкина, дом Пушкина",
+		StartDate: "2020-11-09 19:00:00",
+		EndDate:   "2020-11-09 21:00:00",
+		Seats:     100,
+		SeatsLeft: 2,
 	},
 	1: {
 		Id:       1,
@@ -143,10 +149,31 @@ var MeetingStorage = map[int]*Meeting{
 			"labore et dolore magna aliqua. " +
 			"Ut enim ad minim veniam, quis " +
 			"nostrud exercitation ullamco labori",
-		ImgSrc: "assets/paris.jpg",
-		Tags:   []string{"Python", "Web"},
-		Place:  "СПБ, улица Вязов, д.1",
-		Date:   "2020-11-12",
+		ImgSrc:    "assets/paris.jpg",
+		Tags:      []string{"Python", "Web"},
+		Place:     "СПБ, улица Вязов, д.1",
+		StartDate: "2020-11-10 19:00:00",
+		EndDate:   "2020-11-10 21:00:00",
+		Seats:     10,
+		SeatsLeft: 0,
+	},
+	2: {
+		Id:       2,
+		AuthorId: 1,
+		Title:    "GoLang for Web",
+		Text: "Lorem ipsum dolor sit amet, " +
+			"consectetur adipiscing elit, sed " +
+			"do eiusmod tempor incididunt ut " +
+			"labore et dolore magna aliqua. " +
+			"Ut enim ad minim veniam, quis " +
+			"nostrud exercitation ullamco labori",
+		ImgSrc:    "assets/paris.jpg",
+		Tags:      []string{"Go", "Web"},
+		Place:     "СПБ, улица Вязов, д.1",
+		StartDate: "2020-11-01 19:00:00",
+		EndDate:   "2020-11-01 21:00:00",
+		Seats:     10,
+		SeatsLeft: 10,
 	},
 }
 
@@ -198,7 +225,13 @@ var UserStorage map[int]*User = map[int]*User{
 		Interests:    "Люблю клеить #ДВП и #ДСП",
 		SkillTags:    []string{"Деревообработка"},
 		Skills:       "Моя жизнь - это #Деревообработка",
-		Meetings:     []*UserMeeting{},
+		Meetings: []*UserMeeting{
+			&UserMeeting{
+				Title:  MeetingStorage[2].Title,
+				ImgSrc: MeetingStorage[2].ImgSrc,
+				Link:   fmt.Sprintf("/meet?meetId=%d", MeetingStorage[2].Id),
+			},
+		},
 	},
 }
 
@@ -272,8 +305,8 @@ func UserRegistered(userId, meetId int) bool {
 }
 
 type MeetUpdateFields struct {
-	Reg  bool `json:"reg"`
-	Like bool `json:"like"`
+	Reg  bool `json:"isRegistered"`
+	Like bool `json:"isLiked"`
 }
 
 type MeetingUpdate struct {
