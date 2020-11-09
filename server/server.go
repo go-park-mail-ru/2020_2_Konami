@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -267,8 +268,9 @@ func CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
 		return
 	}
-	_, ok := Sessions[session.Value]
-	if !ok {
+	userId, sOk := Sessions[session.Value]
+	author, uOk := UserStorage[userId]
+	if !sOk || !uOk {
 		WriteError(w, &ErrResponse{http.StatusUnauthorized, "client unauthorized"})
 		return
 	}
@@ -321,22 +323,27 @@ func CreateMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dateTrimmed := strings.Replace(mData.Start, " ", "", -1)
-	lastSep := strings.LastIndex(dateTrimmed, "-")
-	timeSep := strings.LastIndex(dateTrimmed[:lastSep], "-")
+	timeSep := strings.Index(dateTrimmed, "T")
 
 	meeting := &Meeting{
-		Id:     newInd,
-		Title:  mData.Name,
-		Text:   mData.Description,
-		ImgSrc: imgPath,
-		Tags:   mData.Tags,
-		Place:  mData.City + ", " + mData.Address,
-		Date:   dateTrimmed[:timeSep],
+		Id:       newInd,
+		AuthorId: userId,
+		Title:    mData.Name,
+		Text:     mData.Description,
+		ImgSrc:   imgPath,
+		Tags:     mData.Tags,
+		Place:    mData.City + ", " + mData.Address,
+		Date:     dateTrimmed[:timeSep],
 	}
 	if meeting.Tags == nil {
 		meeting.Tags = []string{}
 	}
 	MeetingStorage[newInd] = meeting
+	author.Meetings = append(author.Meetings, &UserMeeting{
+		Title:  mData.Name,
+		ImgSrc: imgPath,
+		Link:   fmt.Sprintf("/meet?meetId=%d", newInd),
+	})
 	w.WriteHeader(http.StatusCreated)
 }
 

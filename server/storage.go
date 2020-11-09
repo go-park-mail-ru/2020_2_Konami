@@ -1,40 +1,42 @@
 package main
 
 import (
+	"fmt"
 	"regexp"
 )
 
 type User struct {
-	Id           int        `json:"id"`
-	Name         string     `json:"name"`
-	Gender       string     `json:"gender"`
-	Birthday     string     `json:"birthday"`
-	City         string     `json:"city"`
-	Email        string     `json:"email"`
-	Telegram     string     `json:"telegram"`
-	Vk           string     `json:"vk"`
-	MeetingTags  []string   `json:"meetingTags"`
-	Education    string     `json:"education"`
-	Job          string     `json:"job"`
-	ImgSrc       string     `json:"imgSrc"`
-	Aims         string     `json:"aims"`
-	InterestTags []string   `json:"interestTags"`
-	Interests    string     `json:"interests"`
-	SkillTags    []string   `json:"skillTags"`
-	Skills       string     `json:"skills"`
-	Meetings     []*Meeting `json:"meetings"`
+	Id           int            `json:"id"`
+	Name         string         `json:"name"`
+	Gender       string         `json:"gender"`
+	Birthday     string         `json:"birthday"`
+	City         string         `json:"city"`
+	Email        string         `json:"email"`
+	Telegram     string         `json:"telegram"`
+	Vk           string         `json:"vk"`
+	MeetingTags  []string       `json:"meetingTags"`
+	Education    string         `json:"education"`
+	Job          string         `json:"job"`
+	ImgSrc       string         `json:"imgSrc"`
+	Aims         string         `json:"aims"`
+	InterestTags []string       `json:"interestTags"`
+	Interests    string         `json:"interests"`
+	SkillTags    []string       `json:"skillTags"`
+	Skills       string         `json:"skills"`
+	Meetings     []*UserMeeting `json:"meetings"`
 }
 
 type Meeting struct {
-	Id     int      `json:"id"`
-	Title  string   `json:"title"`
-	Text   string   `json:"text"`
-	ImgSrc string   `json:"imgSrc"`
-	Tags   []string `json:"tags"`
-	Place  string   `json:"place"`
-	Date   string   `json:"date"`
-	Like   bool     `json:"like"`
-	Reg    bool     `json:"reg"`
+	Id       int      `json:"id"`
+	AuthorId int      `json:"authorId"`
+	Title    string   `json:"title"`
+	Text     string   `json:"text"`
+	ImgSrc   string   `json:"imgSrc"`
+	Tags     []string `json:"tags"`
+	Place    string   `json:"place"`
+	Date     string   `json:"date"`
+	Like     bool     `json:"like"`
+	Reg      bool     `json:"reg"`
 }
 
 type UserUpdate struct {
@@ -52,6 +54,12 @@ type UserUpdate struct {
 	Interests   *string    `json:"interests"`
 	Skills      *string    `json:"skills"`
 	Meetings    []*Meeting `json:"meetings"`
+}
+
+type UserMeeting struct {
+	Title  string `json:"text"`
+	ImgSrc string `json:"imgSrc"`
+	Link   string `json:"link"`
 }
 
 type Credentials struct {
@@ -109,7 +117,40 @@ func (m MeetingsByDate) Less(i, j int) bool {
 	return m[i].Date < m[j].Date
 }
 
-var UserStorage = map[int]*User{
+var MeetingStorage = map[int]*Meeting{
+	0: {
+		Id:       0,
+		AuthorId: 0,
+		Title:    "Забив с++",
+		Text: "Lorem ipsum dolor sit amet, " +
+			"consectetur adipiscing elit, sed " +
+			"do eiusmod tempor incididunt ut " +
+			"labore et dolore magna aliqua. " +
+			"Ut enim ad minim veniam, quis " +
+			"nostrud exercitation ullamco labori",
+		ImgSrc: "assets/paris.jpg",
+		Tags:   []string{"C++"},
+		Place:  "Москва, улица Колотушкина, дом Пушкина",
+		Date:   "2020-11-10",
+	},
+	1: {
+		Id:       1,
+		AuthorId: 0,
+		Title:    "Python for Web",
+		Text: "Lorem ipsum dolor sit amet, " +
+			"consectetur adipiscing elit, sed " +
+			"do eiusmod tempor incididunt ut " +
+			"labore et dolore magna aliqua. " +
+			"Ut enim ad minim veniam, quis " +
+			"nostrud exercitation ullamco labori",
+		ImgSrc: "assets/paris.jpg",
+		Tags:   []string{"Python", "Web"},
+		Place:  "СПБ, улица Вязов, д.1",
+		Date:   "2020-11-12",
+	},
+}
+
+var UserStorage map[int]*User = map[int]*User{
 	0: {
 		Id:           0,
 		Name:         "Александр",
@@ -128,7 +169,18 @@ var UserStorage = map[int]*User{
 		Interests:    "Люблю, когда встаешь утром, а на столе #Шыпшына и #Бульба",
 		SkillTags:    []string{"Мелиорация"},
 		Skills:       "#Мелиорация - это моя жизнь",
-		Meetings:     []*Meeting{},
+		Meetings: []*UserMeeting{
+			&UserMeeting{
+				Title:  MeetingStorage[0].Title,
+				ImgSrc: MeetingStorage[0].ImgSrc,
+				Link:   fmt.Sprintf("/meet?meetId=%d", MeetingStorage[0].Id),
+			},
+			&UserMeeting{
+				Title:  MeetingStorage[1].Title,
+				ImgSrc: MeetingStorage[1].ImgSrc,
+				Link:   fmt.Sprintf("/meet?meetId=%d", MeetingStorage[1].Id),
+			},
+		},
 	},
 	1: {
 		Id:           1,
@@ -146,38 +198,7 @@ var UserStorage = map[int]*User{
 		Interests:    "Люблю клеить #ДВП и #ДСП",
 		SkillTags:    []string{"Деревообработка"},
 		Skills:       "Моя жизнь - это #Деревообработка",
-		Meetings:     []*Meeting{},
-	},
-}
-
-var MeetingStorage = map[int]*Meeting{
-	0: {
-		Id:    0,
-		Title: "Забив с++",
-		Text: "Lorem ipsum dolor sit amet, " +
-			"consectetur adipiscing elit, sed " +
-			"do eiusmod tempor incididunt ut " +
-			"labore et dolore magna aliqua. " +
-			"Ut enim ad minim veniam, quis " +
-			"nostrud exercitation ullamco labori",
-		ImgSrc: "assets/paris.jpg",
-		Tags:   []string{"C++"},
-		Place:  "Москва, улица Колотушкина, дом Пушкина",
-		Date:   "2020-11-10",
-	},
-	1: {
-		Id:    1,
-		Title: "Python for Web",
-		Text: "Lorem ipsum dolor sit amet, " +
-			"consectetur adipiscing elit, sed " +
-			"do eiusmod tempor incididunt ut " +
-			"labore et dolore magna aliqua. " +
-			"Ut enim ad minim veniam, quis " +
-			"nostrud exercitation ullamco labori",
-		ImgSrc: "assets/paris.jpg",
-		Tags:   []string{"Python", "Web"},
-		Place:  "СПБ, улица Вязов, д.1",
-		Date:   "2020-11-12",
+		Meetings:     []*UserMeeting{},
 	},
 }
 
