@@ -95,5 +95,26 @@ func (h *ProfileHandler) GetPeople(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProfileHandler) EditUser(w http.ResponseWriter, r *http.Request) {
-	panic("implement me")
+	token, err := r.Cookie("authToken")
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	userId, err := h.SessionUC.GetUserId(token.Value)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	update := &models.ProfileUpdate{}
+	err = json.NewDecoder(r.Body).Decode(&update)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	err = h.ProfileUC.EditProfile(userId, *update)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }

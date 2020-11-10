@@ -106,5 +106,26 @@ func (h *MeetingHandler) GetMeeting(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *MeetingHandler) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
-	panic("implement me")
+	token, err := r.Cookie("authToken")
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	userId, err := h.SessionUC.GetUserId(token.Value)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	update := &models.MeetingUpdate{}
+	err = json.NewDecoder(r.Body).Decode(&update)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	err = h.MeetingUC.UpdateMeeting(userId, *update)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
