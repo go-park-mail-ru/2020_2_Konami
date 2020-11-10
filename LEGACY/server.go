@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/pborman/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -227,7 +226,7 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		ImgSrc:       "assets/empty-avatar.jpeg",
 		InterestTags: []string{},
 		SkillTags:    []string{},
-		Meetings:     []*UserMeeting{},
+		Meetings:     []*MeetingLabel{},
 	}
 	CredStorage[creds.Login] = &creds
 	CreateSession(w, newInd)
@@ -364,10 +363,10 @@ func CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		meeting.Tags = []string{}
 	}
 	MeetingStorage[newInd] = meeting
-	author.Meetings = append(author.Meetings, &UserMeeting{
-		Title:  mData.Name,
-		ImgSrc: imgPath,
-		Link:   fmt.Sprintf("/meet?meetId=%d", newInd),
+	author.Meetings = append(author.Meetings, &MeetingLabel{
+		Id:    newInd,
+		Title: mData.Name,
+		Cover: imgPath,
 	})
 	w.WriteHeader(http.StatusCreated)
 }
@@ -465,14 +464,16 @@ func main() {
 	r.HandleFunc("/api/meeting", CreateMeeting).Methods("POST")
 	r.HandleFunc("/api/meet", GetMeeting).Methods("GET")
 	r.HandleFunc("/api/meet", UpdateMeeting).Methods("POST")
+
 	r.HandleFunc("/api/people", GetPeople).Methods("GET")
 	r.HandleFunc("/api/user", GetUser).Methods("GET")
 	r.HandleFunc("/api/user", EditUser).Methods("POST")
+	r.HandleFunc("/api/images", UploadUserPic).Methods("POST")
+	r.HandleFunc("/api/signup", SignUp).Methods("POST")
+
 	r.HandleFunc("/api/me", GetUserId).Methods("GET")
 	r.HandleFunc("/api/login", LogIn).Methods("POST")
 	r.HandleFunc("/api/logout", LogOut).Methods("POST")
-	r.HandleFunc("/api/signup", SignUp).Methods("POST")
-	r.HandleFunc("/api/images", UploadUserPic).Methods("POST")
 
 	port := os.Getenv("PORT")
 	if port == "" {

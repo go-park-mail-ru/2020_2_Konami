@@ -14,7 +14,7 @@ func InitDB() (h *Handler) {
 	db.LogMode(true)
 	setup(db)
 	h = &Handler{
-		DB:   db,
+		DB: db,
 	}
 	return h
 }

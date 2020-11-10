@@ -1,8 +1,9 @@
-module server
+module konami_backend
 
 go 1.15
 
 require (
+	github.com/google/uuid v1.0.0
 	github.com/gorilla/mux v1.8.0
 	github.com/jinzhu/gorm v1.9.16
 	github.com/lib/pq v1.8.0

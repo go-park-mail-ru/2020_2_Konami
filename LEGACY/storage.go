@@ -7,24 +7,24 @@ import (
 )
 
 type User struct {
-	Id           int            `json:"id"`
-	Name         string         `json:"name"`
-	Gender       string         `json:"gender"`
-	Birthday     string         `json:"birthday"`
-	City         string         `json:"city"`
-	Email        string         `json:"email"`
-	Telegram     string         `json:"telegram"`
-	Vk           string         `json:"vk"`
-	MeetingTags  []string       `json:"meetingTags"`
-	Education    string         `json:"education"`
-	Job          string         `json:"job"`
-	ImgSrc       string         `json:"imgSrc"`
-	Aims         string         `json:"aims"`
-	InterestTags []string       `json:"interestTags"`
-	Interests    string         `json:"interests"`
-	SkillTags    []string       `json:"skillTags"`
-	Skills       string         `json:"skills"`
-	Meetings     []*UserMeeting `json:"meetings"`
+	Id           int             `json:"id"`
+	Name         string          `json:"name"`
+	Gender       string          `json:"gender"`
+	Birthday     string          `json:"birthday"`
+	City         string          `json:"city"`
+	Email        string          `json:"email"`
+	Telegram     string          `json:"telegram"`
+	Vk           string          `json:"vk"`
+	MeetingTags  []string        `json:"meetingTags"`
+	Education    string          `json:"education"`
+	Job          string          `json:"job"`
+	ImgSrc       string          `json:"imgSrc"`
+	Aims         string          `json:"aims"`
+	InterestTags []string        `json:"interestTags"`
+	Interests    string          `json:"interests"`
+	SkillTags    []string        `json:"skillTags"`
+	Skills       string          `json:"skills"`
+	Meetings     []*MeetingLabel `json:"meetings"`
 }
 
 type Meeting struct {
@@ -43,27 +43,27 @@ type Meeting struct {
 	Reg       bool     `json:"isRegistered"`
 }
 
-type UserUpdate struct {
-	Name        *string        `json:"name"`
-	Gender      *string        `json:"gender"`
-	City        *string        `json:"city"`
-	Birthday    *string        `json:"birthday"`
-	Email       *string        `json:"email"`
-	Telegram    *string        `json:"telegram"`
-	Vk          *string        `json:"vk"`
-	MeetingTags []string       `json:"meetingTags"`
-	Education   *string        `json:"education"`
-	Job         *string        `json:"job"`
-	Aims        *string        `json:"aims"`
-	Interests   *string        `json:"interests"`
-	Skills      *string        `json:"skills"`
-	Meetings    []*UserMeeting `json:"meetings"`
+type MeetingLabel struct {
+	Id    int    `json:"id"`
+	Title string `json:"title"`
+	Cover string `json:"imgSrc"`
 }
 
-type UserMeeting struct {
-	Title  string `json:"text"`
-	ImgSrc string `json:"imgSrc"`
-	Link   string `json:"link"`
+type UserUpdate struct {
+	Name        *string         `json:"name"`
+	Gender      *string         `json:"gender"`
+	City        *string         `json:"city"`
+	Birthday    *string         `json:"birthday"`
+	Email       *string         `json:"email"`
+	Telegram    *string         `json:"telegram"`
+	Vk          *string         `json:"vk"`
+	MeetingTags []string        `json:"meetingTags"`
+	Education   *string         `json:"education"`
+	Job         *string         `json:"job"`
+	Aims        *string         `json:"aims"`
+	Interests   *string         `json:"interests"`
+	Skills      *string         `json:"skills"`
+	Meetings    []*MeetingLabel `json:"meetings"`
 }
 
 type Credentials struct {
@@ -197,16 +197,16 @@ var UserStorage map[int]*User = map[int]*User{
 		Interests:    "Люблю, когда встаешь утром, а на столе #Шыпшына и #Бульба",
 		SkillTags:    []string{"Мелиорация"},
 		Skills:       "#Мелиорация - это моя жизнь",
-		Meetings: []*UserMeeting{
-			&UserMeeting{
-				Title:  MeetingStorage[0].Title,
-				ImgSrc: MeetingStorage[0].ImgSrc,
-				Link:   fmt.Sprintf("/meet?meetId=%d", MeetingStorage[0].Id),
+		Meetings: []*MeetingLabel{
+			&MeetingLabel{
+				Id:    0,
+				Title: MeetingStorage[0].Title,
+				Cover: MeetingStorage[0].ImgSrc,
 			},
-			&UserMeeting{
-				Title:  MeetingStorage[1].Title,
-				ImgSrc: MeetingStorage[1].ImgSrc,
-				Link:   fmt.Sprintf("/meet?meetId=%d", MeetingStorage[1].Id),
+			&MeetingLabel{
+				Id:    1,
+				Title: MeetingStorage[1].Title,
+				Cover: MeetingStorage[1].ImgSrc,
 			},
 		},
 	},
@@ -226,11 +226,11 @@ var UserStorage map[int]*User = map[int]*User{
 		Interests:    "Люблю клеить #ДВП и #ДСП",
 		SkillTags:    []string{"Деревообработка"},
 		Skills:       "Моя жизнь - это #Деревообработка",
-		Meetings: []*UserMeeting{
-			&UserMeeting{
-				Title:  MeetingStorage[2].Title,
-				ImgSrc: MeetingStorage[2].ImgSrc,
-				Link:   fmt.Sprintf("/meet?meetId=%d", MeetingStorage[2].Id),
+		Meetings: []*MeetingLabel{
+			&MeetingLabel{
+				Id:    2,
+				Title: MeetingStorage[2].Title,
+				Cover: MeetingStorage[2].ImgSrc,
 			},
 		},
 	},
