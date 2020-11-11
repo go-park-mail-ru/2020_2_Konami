@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"konami_backend/internal/pkg/meeting"
 	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
@@ -116,6 +117,9 @@ func (h *MeetingHandler) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = h.MeetingUC.UpdateMeeting(userId, *update)
+	if errors.Is(err, meeting.ErrMeetingNotFound) {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusNotFound})
+	}
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return

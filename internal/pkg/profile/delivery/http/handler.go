@@ -40,7 +40,7 @@ func (h *ProfileHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	hu.SetAuthCookie(w, token)
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *ProfileHandler) UploadUserPic(w http.ResponseWriter, r *http.Request) {

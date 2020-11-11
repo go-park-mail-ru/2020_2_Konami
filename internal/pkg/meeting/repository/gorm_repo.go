@@ -172,6 +172,9 @@ func (h *MeetingGormRepo) UpdateMeeting(userId int, update models.MeetingUpdate)
 		Where("id = ?", update.MeetId)
 
 	err := db.Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return meeting.ErrMeetingNotFound
+	}
 	if err != nil {
 		return err
 	}

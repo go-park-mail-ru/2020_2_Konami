@@ -1,6 +1,11 @@
 package meeting
 
-import "konami_backend/internal/pkg/models"
+import (
+	"errors"
+	"konami_backend/internal/pkg/models"
+)
+
+var ErrMeetingNotFound = errors.New("meeting not found")
 
 type Repository interface {
 	CreateMeeting(meeting models.Meeting) (meetingId int, err error)

@@ -42,7 +42,7 @@ func (h *SessionHandler) LogIn(w http.ResponseWriter, r *http.Request) {
 	}
 	token, err := h.SessionUC.CreateSession(userId)
 	hu.SetAuthCookie(w, token)
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (h *SessionHandler) LogOut(w http.ResponseWriter, r *http.Request) {
