@@ -79,8 +79,8 @@ func (uc *MeetingUseCase) CreateMeeting(authorId int, data models.MeetingData) (
 	return uc.MeetRepo.CreateMeeting(m)
 }
 
-func (uc *MeetingUseCase) GetMeeting(meetingId, userId int) (models.Meeting, error) {
-	return uc.MeetRepo.GetMeeting(meetingId, userId)
+func (uc *MeetingUseCase) GetMeeting(meetingId, userId int, authorized bool) (models.Meeting, error) {
+	return uc.MeetRepo.GetMeeting(meetingId, userId, authorized)
 }
 
 func (uc *MeetingUseCase) UpdateMeeting(userId int, update models.MeetingUpdate) error {

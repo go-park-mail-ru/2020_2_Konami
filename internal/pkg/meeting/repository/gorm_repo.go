@@ -146,7 +146,7 @@ func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
 	return m.Id, nil
 }
 
-func (h *MeetingGormRepo) GetMeeting(meetingId, userId int) (models.Meeting, error) {
+func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (models.Meeting, error) {
 	var m Meeting
 	db := h.db.First(&m).
 		Where("id = ?", meetingId)
@@ -157,10 +157,10 @@ func (h *MeetingGormRepo) GetMeeting(meetingId, userId int) (models.Meeting, err
 	}
 	card := ToMeetingCard(m)
 	res := models.Meeting{Card: &card}
-	if likeIndex(m.Likes, userId) != -1 {
+	if authorized && likeIndex(m.Likes, userId) != -1 {
 		res.Like = true
 	}
-	if regIndex(m.Regs, userId) != -1 {
+	if authorized && regIndex(m.Regs, userId) != -1 {
 		res.Reg = true
 	}
 	return res, nil

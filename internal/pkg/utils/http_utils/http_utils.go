@@ -19,22 +19,23 @@ func WriteJson(w http.ResponseWriter, data interface{}) {
 func WriteError(w http.ResponseWriter, resp *ErrResponse) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.RespCode)
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
-func SetMonthCookie(w http.ResponseWriter, name, value string) {
+func SetAuthCookie(w http.ResponseWriter, value string) {
 	cookie := http.Cookie{
-		Name:    name,
-		Value:   value,
-		Expires: time.Now().Add(30 * 24 * time.Hour),
+		Name:     "authToken",
+		Value:    value,
+		HttpOnly: true,
+		Expires:  time.Now().Add(30 * 24 * time.Hour),
 	}
 	http.SetCookie(w, &cookie)
 }
 
-func RemoveCookie(w http.ResponseWriter, name, value string) {
+func RemoveAuthCookie(w http.ResponseWriter, value string) {
 	expire := time.Now().AddDate(0, 0, -1)
 	cookie := http.Cookie{
-		Name:    name,
+		Name:    "authToken",
 		Value:   value,
 		Expires: expire,
 	}

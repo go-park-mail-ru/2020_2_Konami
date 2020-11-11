@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
 	"konami_backend/internal/pkg/session"
@@ -15,17 +16,11 @@ type SessionHandler struct {
 }
 
 func (h *SessionHandler) GetUserId(w http.ResponseWriter, r *http.Request) {
-	token, err := r.Cookie("authToken")
-	if err != nil {
+	uId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
 		return
 	}
-	uId, err := h.SessionUC.GetUserId(token.Value)
-	if err != nil {
-		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
 	hu.WriteJson(w, struct{ userId int }{uId})
 }
 
@@ -38,7 +33,7 @@ func (h *SessionHandler) LogIn(w http.ResponseWriter, r *http.Request) {
 	}
 	userId, err := h.ProfileUC.Validate(cred)
 	if err == profile.ErrInvalidCredentials {
-		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized, ErrMsg: "invalid credentials"})
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest, ErrMsg: "invalid credentials"})
 		return
 	}
 	if err != nil {
@@ -46,21 +41,21 @@ func (h *SessionHandler) LogIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token, err := h.SessionUC.CreateSession(userId)
-	hu.SetMonthCookie(w, "authToken", token)
+	hu.SetAuthCookie(w, token)
 	w.WriteHeader(http.StatusOK)
 }
 
 func (h *SessionHandler) LogOut(w http.ResponseWriter, r *http.Request) {
-	token, err := r.Cookie("authToken")
-	if err != nil {
-		w.WriteHeader(http.StatusOK)
+	token, ok := r.Context().Value(middleware.AuthToken).(string)
+	if !ok {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
 		return
 	}
-	err = h.SessionUC.RemoveSession(token.Value)
+	err := h.SessionUC.RemoveSession(token)
 	if err != nil && err != session.ErrInvalidToken {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return
 	}
-	hu.RemoveCookie(w, "authToken", token.Value)
+	hu.RemoveAuthCookie(w, token)
 	w.WriteHeader(http.StatusOK)
 }

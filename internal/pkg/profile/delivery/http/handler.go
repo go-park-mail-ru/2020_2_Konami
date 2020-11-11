@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
 	"konami_backend/internal/pkg/session"
@@ -11,8 +12,9 @@ import (
 )
 
 type ProfileHandler struct {
-	ProfileUC profile.UseCase
-	SessionUC session.UseCase
+	ProfileUC  profile.UseCase
+	SessionUC  session.UseCase
+	MaxReqSize int64
 }
 
 func (h *ProfileHandler) SignUp(w http.ResponseWriter, r *http.Request) {
@@ -37,22 +39,22 @@ func (h *ProfileHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return
 	}
-	hu.SetMonthCookie(w, "authToken", token)
+	hu.SetAuthCookie(w, token)
 	w.WriteHeader(http.StatusOK)
 }
 
 func (h *ProfileHandler) UploadUserPic(w http.ResponseWriter, r *http.Request) {
-	token, err := r.Cookie("authToken")
-	if err != nil {
+	userId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
 		return
 	}
-	userId, err := h.SessionUC.GetUserId(token.Value)
-	if err != nil {
-		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+	tokenValid, ok := r.Context().Value(middleware.CSRFValid).(bool)
+	if !ok || !tokenValid {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized, ErrMsg: "Invalid CSRF token"})
 		return
 	}
-	err = r.ParseMultipartForm(10 * 1024 * 1024)
+	err := r.ParseMultipartForm(h.MaxReqSize)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest, ErrMsg: "invalid multipart form"})
 		return
@@ -85,7 +87,7 @@ func (h *ProfileHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	hu.WriteJson(w, prof)
 }
 
-func (h *ProfileHandler) GetPeople(w http.ResponseWriter, r *http.Request) {
+func (h *ProfileHandler) GetPeople(w http.ResponseWriter, _ *http.Request) {
 	users, err := h.ProfileUC.GetAll()
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
@@ -95,18 +97,18 @@ func (h *ProfileHandler) GetPeople(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProfileHandler) EditUser(w http.ResponseWriter, r *http.Request) {
-	token, err := r.Cookie("authToken")
-	if err != nil {
+	userId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
 		return
 	}
-	userId, err := h.SessionUC.GetUserId(token.Value)
-	if err != nil {
-		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+	tokenValid, ok := r.Context().Value(middleware.CSRFValid).(bool)
+	if !ok || !tokenValid {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized, ErrMsg: "Invalid CSRF token"})
 		return
 	}
 	update := &models.ProfileUpdate{}
-	err = json.NewDecoder(r.Body).Decode(&update)
+	err := json.NewDecoder(r.Body).Decode(&update)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
