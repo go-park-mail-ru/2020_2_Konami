@@ -24,27 +24,27 @@ func (h *MeetingHandler) GetMeetingsList(w http.ResponseWriter, r *http.Request)
 	myOnly := r.URL.Query().Get("mymeetings") == "true"
 	favOnly := r.URL.Query().Get("favorites") == "true"
 
-	var meets []models.MeetingCard
+	var meets []models.Meeting
 	var ok bool
 	var err error
-	var userId int
-	if myOnly || favOnly {
-		userId, ok = r.Context().Value(middleware.UserID).(int)
-		if !ok {
+	userId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
+		if myOnly || favOnly {
 			hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
 			return
 		}
+		userId = -1
 	}
 	if todayOnly {
-		meets, err = h.MeetingUC.FilterToday()
+		meets, err = h.MeetingUC.FilterToday(userId)
 	} else if tomorrowOnly {
-		meets, err = h.MeetingUC.FilterTomorrow()
+		meets, err = h.MeetingUC.FilterTomorrow(userId)
 	} else if myOnly {
 		meets, err = h.MeetingUC.FilterRegistered(userId)
 	} else if favOnly {
 		meets, err = h.MeetingUC.FilterLiked(userId)
 	} else {
-		meets, err = h.MeetingUC.GetAll()
+		meets, err = h.MeetingUC.GetAll(userId)
 	}
 
 	if err != nil {

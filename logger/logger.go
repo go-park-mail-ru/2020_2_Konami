@@ -14,7 +14,7 @@ type Logger struct {
 func NewLogger(writer io.Writer) *Logger {
 	baseLogger := logrus.New()
 	lgr := &Logger{baseLogger}
-	Formatter := new(logrus.JSONFormatter)
+	Formatter := new(logrus.TextFormatter)
 	Formatter.TimestampFormat = "2006-01-02T15:04:05"
 	lgr.SetFormatter(Formatter)
 	lgr.SetOutput(writer)
@@ -42,10 +42,11 @@ func (l *Logger) LogError(pkg string, method string, err error) {
 	}).Error(err)
 }
 
-func (l *Logger) LogAccess(r *http.Request, worktime time.Duration) {
+func (l *Logger) LogAccess(r *http.Request, status int, worktime time.Duration) {
 	l.WithFields(logrus.Fields{
 		"method":      r.Method,
+		"status":      status,
 		"remote_addr": r.RemoteAddr,
-		"work_time":   worktime,
+		"work_time":   worktime.String(),
 	}).Info(r.URL.Path)
 }

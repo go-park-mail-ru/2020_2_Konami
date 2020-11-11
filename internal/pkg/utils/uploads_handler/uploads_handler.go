@@ -21,7 +21,7 @@ func NewUploadsHandler(uploadsDir string) UploadsHandler {
 }
 
 func (h UploadsHandler) SavePng(imgPath string, img *image.Image) (string, error) {
-	imgPath = h.uploadsDir + "/" + imgPath
+	imgPath = h.uploadsDir + "/" + imgPath + ".png"
 	f, err := os.OpenFile(imgPath, os.O_WRONLY|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		return "", err

@@ -11,10 +11,10 @@ type Repository interface {
 	CreateMeeting(meeting models.Meeting) (meetingId int, err error)
 	GetMeeting(meetingId, userId int, authorized bool) (models.Meeting, error)
 	UpdateMeeting(userId int, update models.MeetingUpdate) error
-	GetAll() ([]models.MeetingCard, error)
-	FilterToday() ([]models.MeetingCard, error)
-	FilterTomorrow() ([]models.MeetingCard, error)
-	FilterFuture() ([]models.MeetingCard, error)
-	FilterLiked(userId int) ([]models.MeetingCard, error)
-	FilterRegistered(userId int) ([]models.MeetingCard, error)
+	GetAll(userId int) ([]models.Meeting, error)
+	FilterToday(userId int) ([]models.Meeting, error)
+	FilterTomorrow(userId int) ([]models.Meeting, error)
+	FilterFuture(userId int) ([]models.Meeting, error)
+	FilterLiked(userId int) ([]models.Meeting, error)
+	FilterRegistered(userId int) ([]models.Meeting, error)
 }

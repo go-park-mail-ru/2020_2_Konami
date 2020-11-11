@@ -1,10 +1,10 @@
 package server
 
 import (
-	"flag"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	csrfDeliveryPkg "konami_backend/internal/pkg/csrf/delivery/http"
 	csrfRepoPkg "konami_backend/internal/pkg/csrf/repository"
@@ -23,6 +23,7 @@ import (
 	corsInit "konami_backend/internal/pkg/utils/cors_init"
 	uploadsHandlerPkg "konami_backend/internal/pkg/utils/uploads_handler"
 	"konami_backend/logger"
+	"log"
 	"net/http"
 	"os"
 )
@@ -93,25 +94,29 @@ func InitRouter(
 	panicM middleware.PanicMiddleware) http.Handler {
 
 	r := mux.NewRouter()
-	r.HandleFunc("/api/v1/people", profile.GetPeople).Methods("GET")
-	r.HandleFunc("/api/v1/user", profile.GetUser).Methods("GET")
-	r.HandleFunc("/api/v1/signup", profile.SignUp).Methods("POST")
-	r.HandleFunc("/api/v1/login", session.LogIn).Methods("POST")
-	r.HandleFunc("/api/v1/csrf", csrf.GetCSRF).Methods("GET")
-	r.HandleFunc("/api/v1/meeting", meeting.GetMeeting).Methods("GET")
-	r.HandleFunc("/api/v1/meetings", meeting.GetMeetingsList).Methods("GET")
-	r.HandleFunc("/api/v1/me", session.GetUserId).Methods("GET")
-	r.HandleFunc("/api/v1/logout", session.LogOut).Methods("DELETE")
-	r.HandleFunc("/api/v1/meeting", meeting.CreateMeeting).Methods("POST")
-	r.HandleFunc("/api/v1/meeting", meeting.UpdateMeeting).Methods("PATCH")
-	r.HandleFunc("/api/v1/user", profile.EditUser).Methods("PATCH")
-	r.HandleFunc("/api/v1/images", profile.UploadUserPic).Methods("POST")
+	rApi := mux.NewRouter()
+	r.PathPrefix("/api/").Handler(http.StripPrefix("/api", rApi))
+	rApi.HandleFunc("/people", profile.GetPeople).Methods("GET")
+	rApi.HandleFunc("/user", profile.GetUser).Methods("GET")
+	rApi.HandleFunc("/signup", profile.SignUp).Methods("POST")
+	rApi.HandleFunc("/login", session.LogIn).Methods("POST")
+	rApi.HandleFunc("/csrf", csrf.GetCSRF).Methods("GET")
+	rApi.HandleFunc("/meeting", meeting.GetMeeting).Methods("GET")
+	rApi.HandleFunc("/meetings", meeting.GetMeetingsList).Methods("GET")
+	rApi.HandleFunc("/me", session.GetUserId).Methods("GET")
+	rApi.HandleFunc("/logout", session.LogOut).Methods("DELETE")
+	rApi.HandleFunc("/meeting", meeting.CreateMeeting).Methods("POST")
+	rApi.HandleFunc("/meeting", meeting.UpdateMeeting).Methods("PATCH")
+	rApi.HandleFunc("/user", profile.EditUser).Methods("PATCH")
+	rApi.HandleFunc("/images", profile.UploadUserPic).Methods("POST")
 	r.Use(panicM.PanicRecovery)
 	r.Use(middleware.HeadersMiddleware)
 	r.Use(logM.Log)
 	r.Use(authM.Auth)
-	rCSRF := r.Headers("Csrf-Token").Subrouter()
-	rCSRF.Use(csrfM.CSRFCheck)
+	//rCSRF := r.Headers("Csrf-Token", "").Subrouter()
+	//rCSRF.Use(csrfM.CSRFCheck)
+	r.Use(csrfM.CSRFCheck)
+
 	return r
 }
 
@@ -120,7 +125,8 @@ func Start() {
 	log = logger.NewLogger(os.Stdout)
 	log.SetLevel(logrus.TraceLevel)
 
-	db, err := gorm.Open("postgres", os.Getenv("DB_CONN"))
+	dsn := "user=max password=Okto dbname=konamidb port=5432 sslmode=disable TimeZone=Europe/Moscow"
+	db, err := gorm.Open("postgres", dsn)
 	if err != nil {
 		log.Fatalf("failed to launch db: %v", err)
 	}
@@ -128,14 +134,16 @@ func Start() {
 	if err := db.DB().Ping(); err != nil {
 		log.Fatalf("failed to launch db: %v", err)
 	}
-
-	redisAddr := flag.String("addr", os.Getenv("REDIS_CONN"), "redis addr")
+	redisAddr := os.Getenv("REDIS_CONN")
+	if redisAddr == "" {
+		redisAddr = "redis://user:@localhost:6379/0"
+	}
 	redisConn := &redis.Pool{
 		MaxIdle:   80,
 		MaxActive: 12000,
 		Wait:      true,
 		Dial: func() (redis.Conn, error) {
-			conn, err := redis.DialURL(*redisAddr)
+			conn, err := redis.DialURL(redisAddr)
 			if err != nil {
 				log.Fatalf("failed to launch redis pool: %v", err)
 			}
@@ -143,6 +151,12 @@ func Start() {
 		},
 	}
 	defer redisConn.Close()
+
+	csrfSecret := os.Getenv("CSRF_SECRET")
+	if csrfSecret == "" {
+		log.Fatalf("csrf secret not provided")
+
+	}
 
 	var maxRecSize int64 = 10 * 1024 * 1024
 	var csrfDuration int64 = 3600
@@ -190,4 +204,25 @@ func Start() {
 	if err != nil {
 		log.Fatal("Unable to launch server: ", err)
 	}
+}
+
+func Migrate() {
+	db, err := gorm.Open("postgres", os.Getenv("DB_CONN"))
+	if err != nil {
+		log.Fatalf("failed to launch db: %v", err)
+	}
+	defer db.Close()
+	if err := db.DB().Ping(); err != nil {
+		log.Fatalf("failed to launch db: %v", err)
+	}
+	db.AutoMigrate(
+		&meetingRepoPkg.Meeting{},
+		&meetingRepoPkg.Like{},
+		&meetingRepoPkg.Registration{},
+		&profileRepoPkg.Profile{},
+		&profileRepoPkg.InterestTag{},
+		&profileRepoPkg.SkillTag{},
+		&sessionRepoPkg.Session{},
+		&tagRepoPkg.Tag{},
+	)
 }

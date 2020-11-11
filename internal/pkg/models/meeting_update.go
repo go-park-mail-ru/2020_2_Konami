@@ -13,8 +13,8 @@ type MeetingUpdate struct {
 type MeetingData struct {
 	Address   *string  `json:"address"`
 	City      *string  `json:"city"`
-	Start     *string  `json:"startDate"`
-	End       *string  `json:"endDate"`
+	Start     *string  `json:"start"`
+	End       *string  `json:"end"`
 	Text      *string  `json:"meet-description"`
 	Tags      []string `json:"meetingTags"`
 	Title     *string  `json:"name"`

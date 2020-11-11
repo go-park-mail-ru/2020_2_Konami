@@ -28,7 +28,7 @@ func NewAuthMiddleware(ProfileUC profile.UseCase, SessionUC session.UseCase) Aut
 func (am *AuthMiddleware) Auth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		token, err := r.Cookie("session_id")
+		token, err := r.Cookie("authToken")
 		if err != nil {
 			ctx = context.WithValue(ctx, AuthStatus, true)
 			next.ServeHTTP(w, r.WithContext(ctx))

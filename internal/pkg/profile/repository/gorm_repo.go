@@ -136,11 +136,13 @@ func ToDbObject(p models.Profile) (Profile, error) {
 	for i, el := range p.Card.SkillTags {
 		obj.SkillTags[i] = SkillTag{Name: el}
 	}
-	var err error
-	layout := "2006-01-02 15:04:05"
-	obj.Birthday, err = time.Parse(layout, p.Birthday)
-	if err != nil {
-		return Profile{}, err
+	if p.Birthday != "" {
+		var err error
+		layout := "2006-01-02 15:04:05"
+		obj.Birthday, err = time.Parse(layout, p.Birthday)
+		if err != nil {
+			return Profile{}, err
+		}
 	}
 	return obj, nil
 }

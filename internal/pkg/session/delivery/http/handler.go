@@ -2,6 +2,7 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
 	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
@@ -32,7 +33,7 @@ func (h *SessionHandler) LogIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userId, err := h.ProfileUC.Validate(cred)
-	if err == profile.ErrInvalidCredentials {
+	if errors.Is(err, profile.ErrInvalidCredentials) {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest, ErrMsg: "invalid credentials"})
 		return
 	}

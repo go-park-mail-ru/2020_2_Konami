@@ -157,13 +157,10 @@ func (h ProfileUseCase) SignUp(cred models.Credentials) (int, error) {
 
 func (h ProfileUseCase) Validate(cred models.Credentials) (int, error) {
 	userId, pwdHash, err := h.ProfileRepo.GetCredentials(cred.Login)
-	if err == profile.ErrUserNonExistent {
-		return 0, profile.ErrInvalidCredentials
-	}
 	if err != nil {
 		return 0, err
 	}
-	cmpRes := bcrypt.CompareHashAndPassword([]byte(cred.Password), []byte(pwdHash))
+	cmpRes := bcrypt.CompareHashAndPassword([]byte(pwdHash), []byte(cred.Password))
 	if cmpRes != nil {
 		return 0, profile.ErrInvalidCredentials
 	}

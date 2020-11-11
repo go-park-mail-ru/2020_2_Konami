@@ -87,26 +87,26 @@ func (uc *MeetingUseCase) UpdateMeeting(userId int, update models.MeetingUpdate)
 	return uc.MeetRepo.UpdateMeeting(userId, update)
 }
 
-func (uc *MeetingUseCase) GetAll() ([]models.MeetingCard, error) {
-	return uc.MeetRepo.GetAll()
+func (uc *MeetingUseCase) GetAll(userId int) ([]models.Meeting, error) {
+	return uc.MeetRepo.GetAll(userId)
 }
 
-func (uc *MeetingUseCase) FilterToday() ([]models.MeetingCard, error) {
-	return uc.MeetRepo.FilterToday()
+func (uc *MeetingUseCase) FilterToday(userId int) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterToday(userId)
 }
 
-func (uc *MeetingUseCase) FilterTomorrow() ([]models.MeetingCard, error) {
-	return uc.MeetRepo.FilterTomorrow()
+func (uc *MeetingUseCase) FilterTomorrow(userId int) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterTomorrow(userId)
 }
 
-func (uc *MeetingUseCase) FilterFuture() ([]models.MeetingCard, error) {
-	return uc.MeetRepo.FilterFuture()
+func (uc *MeetingUseCase) FilterFuture(userId int) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterFuture(userId)
 }
 
-func (uc *MeetingUseCase) FilterLiked(userId int) ([]models.MeetingCard, error) {
+func (uc *MeetingUseCase) FilterLiked(userId int) ([]models.Meeting, error) {
 	return uc.MeetRepo.FilterLiked(userId)
 }
 
-func (uc *MeetingUseCase) FilterRegistered(userId int) ([]models.MeetingCard, error) {
+func (uc *MeetingUseCase) FilterRegistered(userId int) ([]models.Meeting, error) {
 	return uc.MeetRepo.FilterRegistered(userId)
 }
