@@ -1,9 +1,12 @@
 package profile
 
 import (
+	"errors"
 	"io"
 	"konami_backend/internal/pkg/models"
 )
+
+var ErrInvalidCredentials = errors.New("invalid credentials")
 
 type UseCase interface {
 	GetAll() ([]models.ProfileCard, error)

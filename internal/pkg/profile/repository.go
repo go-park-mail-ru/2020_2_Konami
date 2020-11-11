@@ -10,8 +10,8 @@ var ErrUserNonExistent = errors.New("user non existent")
 type Repository interface {
 	GetAll() ([]models.ProfileCard, error)
 	GetProfile(userId int) (models.Profile, error)
-	EditProfile(userId int, update models.ProfileUpdate) error
+	EditProfile(update models.Profile) error
 	EditProfilePic(userId int, imgSrc string) error
-	SignUp(cred models.Credentials) (userId int, err error)
-	Validate(cred models.Credentials) (userId int, err error)
+	Create(p models.Profile) (userId int, err error)
+	GetCredentials(login string) (userId int, pwdHash string, err error)
 }

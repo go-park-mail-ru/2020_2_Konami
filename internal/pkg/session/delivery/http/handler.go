@@ -37,7 +37,7 @@ func (h *SessionHandler) LogIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	userId, err := h.ProfileUC.Validate(cred)
-	if err == profile.ErrUserNonExistent {
+	if err == profile.ErrInvalidCredentials {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized, ErrMsg: "invalid credentials"})
 		return
 	}

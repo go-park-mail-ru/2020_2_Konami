@@ -42,7 +42,7 @@ func (uc *MeetingUseCase) CreateMeeting(authorId int, data models.MeetingData) (
 	var err error
 	if data.Photo != nil {
 		imgSrc = uc.MeetingCoversDir + "/" + uuid.New().String()
-		err = uc.UploadsHandler.UploadBase64Image(imgSrc, data.Photo)
+		imgSrc, err = uc.UploadsHandler.UploadBase64Image(imgSrc, data.Photo)
 		if err != nil {
 			return 0, err
 		}

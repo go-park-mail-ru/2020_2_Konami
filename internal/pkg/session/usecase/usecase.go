@@ -12,14 +12,14 @@ func NewSessionUseCase(SessionRepo session.Repository) session.UseCase {
 	return &SessionUseCase{SessionRepo: SessionRepo}
 }
 
-func (s SessionUseCase) GetUserId(token string) (userId int, err error) {
-	panic("implement me")
+func (uc SessionUseCase) GetUserId(token string) (userId int, err error) {
+	return uc.SessionRepo.GetUserId(token)
 }
 
-func (s SessionUseCase) CreateSession(userId int) (token string, err error) {
-	panic("implement me")
+func (uc SessionUseCase) CreateSession(userId int) (token string, err error) {
+	return uc.SessionRepo.CreateSession(userId)
 }
 
-func (s SessionUseCase) RemoveSession(token string) error {
-	panic("implement me")
+func (uc SessionUseCase) RemoveSession(token string) error {
+	return uc.SessionRepo.RemoveSession(token)
 }

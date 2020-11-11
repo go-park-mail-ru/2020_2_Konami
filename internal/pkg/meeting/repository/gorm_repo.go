@@ -24,7 +24,7 @@ type Meeting struct {
 	Title     string
 	Text      string
 	ImgSrc    string
-	Tags      []*tagRepo.Tag `gorm:"many2many:meeting_tags;"`
+	Tags      []tagRepo.Tag `gorm:"many2many:meeting_tags;"`
 	City      string
 	Address   string
 	StartDate time.Time
@@ -70,10 +70,10 @@ func ToDbObject(data models.MeetingCard) (Meeting, error) {
 		Seats:     data.Seats,
 		SeatsLeft: data.SeatsLeft,
 	}
-	m.Tags = make([]*tagRepo.Tag, len(data.Tags))
+	m.Tags = make([]tagRepo.Tag, len(data.Tags))
 	for i, val := range data.Tags {
 		tag := tagRepo.ToDbObject(*val)
-		m.Tags[i] = &tag
+		m.Tags[i] = tag
 	}
 	layout := "2006-01-02 15:04:05"
 	var errSt, errEnd error
@@ -85,13 +85,19 @@ func ToDbObject(data models.MeetingCard) (Meeting, error) {
 	return m, nil
 }
 
-func ToModel(obj Meeting) models.MeetingCard {
+func ToMeetingLabel(obj Meeting) models.MeetingLabel {
+	m := models.MeetingLabel{
+		Id:    obj.Id,
+		Title: obj.Title,
+		Cover: obj.ImgSrc,
+	}
+	return m
+}
+
+func ToMeetingCard(obj Meeting) models.MeetingCard {
+	label := ToMeetingLabel(obj)
 	m := models.MeetingCard{
-		Label: &models.MeetingLabel{
-			Id:    obj.Id,
-			Title: obj.Title,
-			Cover: obj.ImgSrc,
-		},
+		Label:     &label,
 		AuthorId:  obj.AuthorId,
 		Text:      obj.Text,
 		Address:   obj.Address,
@@ -103,7 +109,7 @@ func ToModel(obj Meeting) models.MeetingCard {
 	}
 	m.Tags = make([]*models.Tag, len(obj.Tags))
 	for i, val := range obj.Tags {
-		tag := tagRepo.ToModel(*val)
+		tag := tagRepo.ToModel(val)
 		m.Tags[i] = &tag
 	}
 	return m
@@ -142,16 +148,14 @@ func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
 
 func (h *MeetingGormRepo) GetMeeting(meetingId, userId int) (models.Meeting, error) {
 	var m Meeting
-	db := h.db.
-		Table("meetings").
-		Where("id = ?", meetingId).
-		First(&m)
+	db := h.db.First(&m).
+		Where("id = ?", meetingId)
 
 	err := db.Error
 	if err != nil {
 		return models.Meeting{}, err
 	}
-	card := ToModel(m)
+	card := ToMeetingCard(m)
 	res := models.Meeting{Card: &card}
 	if likeIndex(m.Likes, userId) != -1 {
 		res.Like = true
@@ -164,10 +168,9 @@ func (h *MeetingGormRepo) GetMeeting(meetingId, userId int) (models.Meeting, err
 
 func (h *MeetingGormRepo) UpdateMeeting(userId int, update models.MeetingUpdate) error {
 	m := Meeting{}
-	db := h.db.
-		Table("meetings").
-		Where("id = ?", update.MeetId).
-		First(&m)
+	db := h.db.First(&m).
+		Where("id = ?", update.MeetId)
+
 	err := db.Error
 	if err != nil {
 		return err
@@ -200,16 +203,14 @@ func (h *MeetingGormRepo) UpdateMeeting(userId int, update models.MeetingUpdate)
 
 func (h *MeetingGormRepo) GetAll() ([]models.MeetingCard, error) {
 	var meetings []Meeting
-	db := h.db.
-		Table("meetings").
-		Find(&meetings).Order("StartDate ASC")
+	db := h.db.Find(&meetings)
 	err := db.Error
 	if err != nil {
 		return []models.MeetingCard{}, err
 	}
 	result := make([]models.MeetingCard, len(meetings))
 	for i, el := range meetings {
-		result[i] = ToModel(el)
+		result[i] = ToMeetingCard(el)
 	}
 	return result, nil
 }
@@ -217,19 +218,19 @@ func (h *MeetingGormRepo) GetAll() ([]models.MeetingCard, error) {
 func (h *MeetingGormRepo) FilterDate(dt time.Time) ([]models.MeetingCard, error) {
 	dateSlice := strings.Split(dt.Format("2006-01-02"), "-")
 	var meetings []Meeting
-	db := h.db.
-		Table("meetings").
+	db := h.db.Find(&meetings).
 		Where("DATEPART(yy, StartDate) = ?", dateSlice[0]).
 		Where("DATEPART(mm, StartDate) = ?", dateSlice[1]).
 		Where("DATEPART(dd, StartDate) = ?", dateSlice[2]).
-		Find(&meetings)
+		Order("StartDate ASC")
+
 	err := db.Error
 	if err != nil {
 		return []models.MeetingCard{}, err
 	}
 	result := make([]models.MeetingCard, len(meetings))
 	for i, el := range meetings {
-		result[i] = ToModel(el)
+		result[i] = ToMeetingCard(el)
 	}
 	return result, nil
 }
@@ -247,29 +248,27 @@ func (h *MeetingGormRepo) FilterTomorrow() ([]models.MeetingCard, error) {
 func (h *MeetingGormRepo) FilterFuture() ([]models.MeetingCard, error) {
 	dateSlice := strings.Split(time.Now().Format("2006-01-02"), "-")
 	var meetings []Meeting
-	db := h.db.
-		Table("meetings").
+	db := h.db.Find(&meetings).
 		Where("DATEPART(yy, StartDate) >= ?", dateSlice[0]).
 		Where("DATEPART(mm, StartDate) >= ?", dateSlice[1]).
 		Where("DATEPART(dd, StartDate) >= ?", dateSlice[2]).
-		Find(&meetings)
+		Order("StartDate ASC")
+
 	err := db.Error
 	if err != nil {
 		return []models.MeetingCard{}, err
 	}
 	result := make([]models.MeetingCard, len(meetings))
 	for i, el := range meetings {
-		result[i] = ToModel(el)
+		result[i] = ToMeetingCard(el)
 	}
 	return result, nil
 }
 
 func (h *MeetingGormRepo) FilterLiked(userId int) ([]models.MeetingCard, error) {
 	var likes []Like
-	db := h.db.
-		Table("likes").
-		Where("UserId = ?", userId).
-		Find(&likes)
+	db := h.db.Find(&likes).
+		Where("UserId = ?", userId)
 
 	if db.Error != nil {
 		return nil, db.Error
@@ -277,9 +276,9 @@ func (h *MeetingGormRepo) FilterLiked(userId int) ([]models.MeetingCard, error) 
 	result := make([]models.MeetingCard, len(likes))
 	for i, el := range likes {
 		db = h.db.
-			Table("meetings").
-			Where("id = ?", el.MeetingId).
-			First(&result[i])
+			First(&result[i]).
+			Where("id = ?", el.MeetingId)
+
 		if db.Error != nil {
 			return nil, db.Error
 		}
@@ -289,19 +288,18 @@ func (h *MeetingGormRepo) FilterLiked(userId int) ([]models.MeetingCard, error) 
 
 func (h *MeetingGormRepo) FilterRegistered(userId int) ([]models.MeetingCard, error) {
 	var regs []Registration
-	db := h.db.
-		Table("registrations").
-		Where("UserId = ?", userId).
-		Find(&regs)
+	db := h.db.Find(&regs).
+		Where("UserId = ?", userId)
+
 	if db.Error != nil {
 		return nil, db.Error
 	}
 	result := make([]models.MeetingCard, len(regs))
 	for i, el := range regs {
 		db = h.db.
-			Table("meetings").
-			Where("id = ?", el.MeetingId).
-			First(&result[i])
+			First(&result[i]).
+			Where("id = ?", el.MeetingId)
+
 		if db.Error != nil {
 			return nil, db.Error
 		}

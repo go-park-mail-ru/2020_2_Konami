@@ -5,7 +5,6 @@ type ProfileUpdate struct {
 	Gender      *string  `json:"gender"`
 	City        *string  `json:"city"`
 	Birthday    *string  `json:"birthday"`
-	Email       *string  `json:"email"`
 	Telegram    *string  `json:"telegram"`
 	Vk          *string  `json:"vk"`
 	MeetingTags []string `json:"meetingTags"`
