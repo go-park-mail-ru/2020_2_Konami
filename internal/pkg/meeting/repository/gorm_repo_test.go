@@ -76,7 +76,7 @@ func (s *Suite) SetupSuite() {
 
 	s.DB, err = gorm.Open("postgres", db)
 	require.NoError(s.T(), err)
-	s.DB.LogMode(false)
+	s.DB.LogMode(true)
 
 	s.repository = NewMeetingGormRepo(s.DB)
 }
@@ -86,15 +86,25 @@ func (s *Suite) AfterTest(_, _ string) {
 }
 
 func (s *Suite) TestCreateMeeting() {
-	/*	s.mock.ExpectBegin()
-		s.mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "meetings" ("author_id","title","text","img_src","city","address","start_date","end_date","seats","seats_left") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING "meetings"."id"`)).
-			WithArgs(0, 0).
-			WillReturnResult(driver.RowsAffected(1))
-		s.mock.ExpectRollback()
+/*	testMeetinhs := s.meetings[0]
+	o, _ := ToDbObject(*testMeetinhs.Card)
+	const sqlInsert = `INSERT INTO "meetings" ("author_id","title","text","img_src","city","address","start_date","end_date","seats","seats_left")
+						VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING "meetings"."id"`
 
-		_, err := s.repository.CreateMeeting(s.meetings[0])
+	const sqlInsert2 = `UPDATE "tags" SET "name" = $1  WHERE "tags"."id" = $2`
+
+	newId := 1
+	s.mock.ExpectBegin()
+	s.mock.ExpectQuery(regexp.QuoteMeta(sqlInsert)).
+			WithArgs(o.AuthorId, o.Title, o.Text, o.ImgSrc, o.City, o.Address, o.StartDate, o.EndDate, o.Seats, o.SeatsLeft).
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(newId))
+	s.mock.ExpectQuery(regexp.QuoteMeta(sqlInsert2)).
+			WithArgs(testMeetinhs.Card.Tags[0].Name, testMeetinhs.Card.Tags[0].TagId)
+	s.mock.ExpectCommit()
+
+	_, err := s.repository.CreateMeeting(s.meetings[0])
 		require.NoError(s.T(), err)
-	*/
+*/
 }
 
 func (s *Suite) TestGetMeetings() {
