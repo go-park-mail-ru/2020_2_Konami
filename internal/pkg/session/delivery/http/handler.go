@@ -22,7 +22,9 @@ func (h *SessionHandler) GetUserId(w http.ResponseWriter, r *http.Request) {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
 		return
 	}
-	hu.WriteJson(w, struct{ userId int }{uId})
+	hu.WriteJson(w, struct {
+		UserId int `json:"userId"`
+	}{uId})
 }
 
 func (h *SessionHandler) LogIn(w http.ResponseWriter, r *http.Request) {

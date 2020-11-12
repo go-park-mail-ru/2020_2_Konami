@@ -31,8 +31,8 @@ type Meeting struct {
 	EndDate   time.Time
 	Seats     int
 	SeatsLeft int
-	Regs      []Registration
-	Likes     []Like
+	Regs      []Registration `gorm:"foreignKey:MeetingId"`
+	Likes     []Like         `gorm:"foreignKey:MeetingId"`
 }
 
 type Registration struct {
@@ -102,8 +102,8 @@ func ToMeetingCard(obj Meeting) models.MeetingCard {
 		Text:      obj.Text,
 		Address:   obj.Address,
 		City:      obj.City,
-		StartDate: obj.StartDate.Format("2006-01-02 15:04:05"),
-		EndDate:   obj.EndDate.Format("2006-01-02 15:04:05"),
+		StartDate: obj.StartDate.Format("2006-01-02T15:04:05.000Z0700"),
+		EndDate:   obj.EndDate.Format("2006-01-02T15:04:05.000Z0700"),
 		Seats:     obj.Seats,
 		SeatsLeft: obj.SeatsLeft,
 	}
@@ -115,34 +115,88 @@ func ToMeetingCard(obj Meeting) models.MeetingCard {
 	return m
 }
 
-func ToMeeting(obj Meeting, userId int) models.Meeting {
+func (h *MeetingGormRepo) ToMeeting(obj Meeting, userId int) models.Meeting {
 	card := ToMeetingCard(obj)
 	m := models.Meeting{Card: &card}
-	if userId != -1 && likeIndex(obj.Likes, userId) != -1 {
+	if userId != -1 && h.LikeExists(obj.Id, userId) {
 		m.Like = true
 	}
-	if userId != -1 && regIndex(obj.Regs, userId) != -1 {
+	if userId != -1 && h.RegExists(obj.Id, userId) {
 		m.Reg = true
 	}
 	return m
 }
 
-func likeIndex(s []Like, target int) int {
-	for i, el := range s {
-		if el.UserId == target {
-			return i
-		}
+func (h *MeetingGormRepo) LikeExists(meetId int, userId int) bool {
+	var l Like
+	db := h.db.
+		Where("meeting_id = ?", meetId).
+		Where("user_id = ?", userId).
+		First(&l)
+	if db.Error == nil {
+		return true
 	}
-	return -1
+	return false
 }
 
-func regIndex(s []Registration, target int) int {
-	for i, el := range s {
-		if el.UserId == target {
-			return i
+func (h *MeetingGormRepo) SetLike(meetId int, userId int) error {
+	var l Like
+	db := h.db.
+		Where("meeting_id = ?", meetId).
+		Where("user_id = ?", userId).
+		First(&l)
+	if db.Error != nil {
+		l = Like{
+			MeetingId: meetId,
+			UserId:    userId,
 		}
+		db = h.db.Create(&l)
 	}
-	return -1
+	return db.Error
+}
+
+func (h *MeetingGormRepo) RemoveLike(meetId int, userId int) error {
+	db := h.db.
+		Where("meeting_id = ?", meetId).
+		Where("user_id = ?", userId).
+		Delete(Like{})
+	return db.Error
+}
+
+func (h *MeetingGormRepo) RegExists(meetId int, userId int) bool {
+	var l Registration
+	db := h.db.
+		Where("meeting_id = ?", meetId).
+		Where("user_id = ?", userId).
+		First(&l)
+	if db.Error == nil {
+		return true
+	}
+	return false
+}
+
+func (h *MeetingGormRepo) SetReg(meetId int, userId int) error {
+	var l Registration
+	db := h.db.
+		Where("meeting_id = ?", meetId).
+		Where("user_id = ?", userId).
+		First(&l)
+	if db.Error != nil {
+		l = Registration{
+			MeetingId: meetId,
+			UserId:    userId,
+		}
+		db = h.db.Create(&l)
+	}
+	return db.Error
+}
+
+func (h *MeetingGormRepo) RemoveReg(meetId int, userId int) error {
+	db := h.db.
+		Where("meeting_id = ?", meetId).
+		Where("user_id = ?", userId).
+		Delete(Registration{})
+	return db.Error
 }
 
 func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
@@ -159,31 +213,23 @@ func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
 }
 
 func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (models.Meeting, error) {
+	if !authorized {
+		userId = -1
+	}
 	var m Meeting
-	db := h.db.First(&m).
-		Where("id = ?", meetingId)
-
+	db := h.db.
+		Where("id = ?", meetingId).
+		First(&m)
 	err := db.Error
 	if err != nil {
 		return models.Meeting{}, err
 	}
-	card := ToMeetingCard(m)
-	res := models.Meeting{Card: &card}
-	if authorized && likeIndex(m.Likes, userId) != -1 {
-		res.Like = true
-	}
-	if authorized && regIndex(m.Regs, userId) != -1 {
-		res.Reg = true
-	}
+	res := h.ToMeeting(m, userId)
 	return res, nil
 }
 
 func (h *MeetingGormRepo) UpdateMeeting(userId int, update models.MeetingUpdate) error {
-	m := Meeting{}
-	db := h.db.First(&m).
-		Where("id = ?", update.MeetId)
-
-	err := db.Error
+	_, err := h.GetMeeting(update.MeetId, -1, false)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return meeting.ErrMeetingNotFound
 	}
@@ -191,29 +237,19 @@ func (h *MeetingGormRepo) UpdateMeeting(userId int, update models.MeetingUpdate)
 		return err
 	}
 	if update.Fields.Like != nil && *update.Fields.Like == true {
-		like := Like{MeetingId: m.Id, UserId: userId}
-		if likeIndex(m.Likes, userId) == -1 {
-			m.Likes = append(m.Likes, like)
-		}
+		err = h.SetLike(update.MeetId, userId)
 	} else if update.Fields.Like != nil && *update.Fields.Like == false {
-		li := likeIndex(m.Likes, userId)
-		if li != -1 {
-			m.Likes = append(m.Likes[:li], m.Likes[li+1:]...)
-		}
+		err = h.RemoveLike(update.MeetId, userId)
+	}
+	if err != nil {
+		return err
 	}
 	if update.Fields.Reg != nil && *update.Fields.Reg == true {
-		reg := Registration{MeetingId: m.Id, UserId: userId}
-		if regIndex(m.Regs, userId) == -1 {
-			m.Regs = append(m.Regs, reg)
-		}
+		err = h.SetReg(update.MeetId, userId)
 	} else if update.Fields.Reg != nil && *update.Fields.Reg == false {
-		reg := regIndex(m.Regs, userId)
-		if reg != -1 {
-			m.Regs = append(m.Regs[:reg], m.Regs[reg+1:]...)
-		}
+		err = h.RemoveReg(update.MeetId, userId)
 	}
-	db = h.db.Save(&m)
-	return db.Error
+	return err
 }
 
 func (h *MeetingGormRepo) GetAll(userId int) ([]models.Meeting, error) {
@@ -225,7 +261,7 @@ func (h *MeetingGormRepo) GetAll(userId int) ([]models.Meeting, error) {
 	}
 	result := make([]models.Meeting, len(meetings))
 	for i, el := range meetings {
-		result[i] = ToMeeting(el, userId)
+		result[i] = h.ToMeeting(el, userId)
 	}
 	return result, nil
 }
@@ -245,7 +281,7 @@ func (h *MeetingGormRepo) FilterDate(dt time.Time, userId int) ([]models.Meeting
 	}
 	result := make([]models.Meeting, len(meetings))
 	for i, el := range meetings {
-		result[i] = ToMeeting(el, userId)
+		result[i] = h.ToMeeting(el, userId)
 	}
 	return result, nil
 }
@@ -275,7 +311,7 @@ func (h *MeetingGormRepo) FilterFuture(userId int) ([]models.Meeting, error) {
 	}
 	result := make([]models.Meeting, len(meetings))
 	for i, el := range meetings {
-		result[i] = ToMeeting(el, userId)
+		result[i] = h.ToMeeting(el, userId)
 	}
 	return result, nil
 }
@@ -292,12 +328,12 @@ func (h *MeetingGormRepo) FilterLiked(userId int) ([]models.Meeting, error) {
 	m := Meeting{}
 	for i, el := range likes {
 		db = h.db.
-			First(&m).
-			Where("id = ?", el.MeetingId)
+			Where("id = ?", el.MeetingId).
+			First(&m)
 		if db.Error != nil {
 			return nil, db.Error
 		}
-		result[i] = ToMeeting(m, userId)
+		result[i] = h.ToMeeting(m, userId)
 	}
 	return result, nil
 }
@@ -314,13 +350,13 @@ func (h *MeetingGormRepo) FilterRegistered(userId int) ([]models.Meeting, error)
 	m := Meeting{}
 	for i, el := range regs {
 		db = h.db.
-			First(&m).
-			Where("id = ?", el.MeetingId)
+			Where("id = ?", el.MeetingId).
+			First(&m)
 
 		if db.Error != nil {
 			return nil, db.Error
 		}
-		result[i] = ToMeeting(m, userId)
+		result[i] = h.ToMeeting(m, userId)
 	}
 	return result, nil
 }

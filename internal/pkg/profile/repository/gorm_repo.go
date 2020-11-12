@@ -163,8 +163,9 @@ func (h ProfileGormRepo) GetAll() ([]models.ProfileCard, error) {
 
 func (h ProfileGormRepo) GetProfile(userId int) (models.Profile, error) {
 	var p Profile
-	db := h.db.First(&p).
-		Where("id = ?", userId)
+	db := h.db.
+		Where("id = ?", userId).
+		First(&p)
 	err := db.Error
 	if err != nil {
 		return models.Profile{}, err
@@ -174,8 +175,9 @@ func (h ProfileGormRepo) GetProfile(userId int) (models.Profile, error) {
 
 func (h ProfileGormRepo) EditProfile(update models.Profile) error {
 	var old Profile
-	db := h.db.First(&old).
-		Where("id = ?", update.Card.Label.Id)
+	db := h.db.
+		Where("id = ?", update.Card.Label.Id).
+		First(&old)
 	err := db.Error
 	if err != nil {
 		return err
@@ -192,8 +194,9 @@ func (h ProfileGormRepo) EditProfile(update models.Profile) error {
 
 func (h ProfileGormRepo) EditProfilePic(userId int, imgSrc string) error {
 	var obj Profile
-	db := h.db.First(&obj).
-		Where("id = ?", userId)
+	db := h.db.
+		Where("id = ?", userId).
+		First(&obj)
 	err := db.Error
 	if err != nil {
 		return err
@@ -214,8 +217,9 @@ func (h ProfileGormRepo) Create(p models.Profile) (int, error) {
 
 func (h ProfileGormRepo) GetCredentials(login string) (int, string, error) {
 	var obj Profile
-	db := h.db.First(&obj).
-		Where("Login = ?", login)
+	db := h.db.
+		Where("Login = ?", login).
+		First(&obj)
 	err := db.Error
 	if gorm.IsRecordNotFoundError(err) {
 		return 0, "", profile.ErrUserNonExistent
