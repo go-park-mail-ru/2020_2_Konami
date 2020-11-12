@@ -73,6 +73,7 @@ func ToDbObject(data models.MeetingCard) (Meeting, error) {
 	m.Tags = make([]tagRepo.Tag, len(data.Tags))
 	for i, val := range data.Tags {
 		tag := tagRepo.ToDbObject(*val)
+		tag.Name = strings.TrimSuffix(tag.Name, "×")
 		m.Tags[i] = tag
 	}
 	layout := "2006-01-02T15:04:05.000Z0700"
@@ -217,7 +218,7 @@ func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (mo
 		userId = -1
 	}
 	var m Meeting
-	db := h.db.
+	db := h.db.Preload("Tags").
 		Where("id = ?", meetingId).
 		First(&m)
 	err := db.Error

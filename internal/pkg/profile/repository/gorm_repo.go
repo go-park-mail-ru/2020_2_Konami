@@ -84,7 +84,6 @@ func ToProfile(obj Profile) models.Profile {
 	p := models.Profile{
 		Card:      &card,
 		Gender:    obj.Gender,
-		Birthday:  obj.Birthday.Format("2006-01-02"),
 		City:      obj.City,
 		Login:     obj.Login,
 		PwdHash:   obj.PwdHash,
@@ -94,6 +93,9 @@ func ToProfile(obj Profile) models.Profile {
 		Aims:      obj.Aims,
 		Interests: obj.Interests,
 		Skills:    obj.Skills,
+	}
+	if obj.Birthday.Unix() != (time.Time{}).Unix() {
+		p.Birthday = obj.Birthday.Format("2006-01-02")
 	}
 	p.MeetingTags = make([]*models.Tag, len(obj.MeetingTags))
 	for i, val := range obj.MeetingTags {
@@ -110,6 +112,7 @@ func ToProfile(obj Profile) models.Profile {
 
 func ToDbObject(p models.Profile) (Profile, error) {
 	obj := Profile{
+		Id:        p.Card.Label.Id,
 		Name:      p.Card.Label.Name,
 		ImgSrc:    p.Card.Label.ImgSrc,
 		Job:       p.Card.Job,
@@ -126,7 +129,7 @@ func ToDbObject(p models.Profile) (Profile, error) {
 	}
 	obj.MeetingTags = make([]tagRepo.Tag, len(p.MeetingTags))
 	for i, el := range p.MeetingTags {
-		obj.MeetingTags[i] = tagRepo.ToDbObject(*el)
+		obj.MeetingTags[i] = tagRepo.Tag{Name: el.Name}
 	}
 	obj.InterestTags = make([]InterestTag, len(p.Card.InterestTags))
 	for i, el := range p.Card.InterestTags {
@@ -138,7 +141,7 @@ func ToDbObject(p models.Profile) (Profile, error) {
 	}
 	if p.Birthday != "" {
 		var err error
-		layout := "2006-01-02 15:04:05"
+		layout := "2006-01-02"
 		obj.Birthday, err = time.Parse(layout, p.Birthday)
 		if err != nil {
 			return Profile{}, err
@@ -149,7 +152,12 @@ func ToDbObject(p models.Profile) (Profile, error) {
 
 func (h ProfileGormRepo) GetAll() ([]models.ProfileCard, error) {
 	var profiles []Profile
-	db := h.db.Find(&profiles)
+	db := h.db.
+		Preload("MeetingTags").
+		Preload("InterestTags").
+		Preload("SkillTags").
+		Preload("Meetings").
+		Find(&profiles)
 	err := db.Error
 	if err != nil {
 		return nil, err
@@ -165,6 +173,10 @@ func (h ProfileGormRepo) GetProfile(userId int) (models.Profile, error) {
 	var p Profile
 	db := h.db.
 		Where("id = ?", userId).
+		Preload("MeetingTags").
+		Preload("InterestTags").
+		Preload("SkillTags").
+		Preload("Meetings").
 		First(&p)
 	err := db.Error
 	if err != nil {
@@ -174,21 +186,11 @@ func (h ProfileGormRepo) GetProfile(userId int) (models.Profile, error) {
 }
 
 func (h ProfileGormRepo) EditProfile(update models.Profile) error {
-	var old Profile
-	db := h.db.
-		Where("id = ?", update.Card.Label.Id).
-		First(&old)
-	err := db.Error
-	if err != nil {
-		return err
-	}
 	updatedObj, err := ToDbObject(update)
 	if err != nil {
 		return err
 	}
-	updatedObj.Id = old.Id
-	updatedObj.Meetings = old.Meetings
-	db = h.db.Save(updatedObj)
+	db := h.db.Save(&updatedObj)
 	return db.Error
 }
 
