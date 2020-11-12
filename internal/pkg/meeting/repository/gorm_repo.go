@@ -217,9 +217,9 @@ func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (mo
 		userId = -1
 	}
 	var m Meeting
-	db := h.db.
-		Where("id = ?", meetingId).
-		First(&m)
+	db := h.db.Where("id = ?", meetingId).Find(&m)
+	/*	db := h.db.First(&m).
+		Where("id = ?", meetingId)*/
 
 	err := db.Error
 	if err != nil {
