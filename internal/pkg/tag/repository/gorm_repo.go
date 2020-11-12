@@ -41,10 +41,9 @@ func ToDbObject(tag models.Tag) Tag {
 
 func (h *TagGormRepo) GetTagById(id int) (models.Tag, error) {
 	var res Tag
-	db := h.db.Where("id = ?", id).Find(&res)
-
-	/*db := h.db.First(&res).
-		Where("id = ?", id)*/
+	db := h.db.
+		Where("id = ?", id).
+		First(&res)
 
 	err := db.Error
 	if db.Error != nil {
@@ -55,10 +54,7 @@ func (h *TagGormRepo) GetTagById(id int) (models.Tag, error) {
 
 func (h *TagGormRepo) GetTagByName(name string) (models.Tag, error) {
 	var res Tag
-	db := h.db.Where("UPPER(name) = ?", name).Find(&res)
-
-/*	db := h.db.First(&res).
-		Where("UPPER(name) = ?", strings.ToUpper(name))*/
+	db := h.db.Where("Name = ?", name).First(&res)
 
 	err := db.Error
 	if db.Error != nil {
@@ -90,7 +86,9 @@ func (h *TagGormRepo) GetOrCreateTag(name string) (models.Tag, error) {
 
 func (h *TagGormRepo) FilterTags(startsWith string) ([]models.Tag, error) {
 	var tSlice []Tag
-	db := h.db.Find(&tSlice).Where("UPPER(name) LIKE ?", strings.ToUpper(startsWith)+"%")
+	db := h.db.
+		Where("UPPER(name) LIKE ?", strings.ToUpper(startsWith)+"%").
+		Find(&tSlice)
 
 	err := db.Error
 	if err != nil {

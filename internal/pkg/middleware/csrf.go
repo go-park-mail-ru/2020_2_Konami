@@ -26,8 +26,8 @@ func (m *CSRFMiddleware) CSRFCheck(next http.Handler) http.Handler {
 		ctx := r.Context()
 		authTok, ok := ctx.Value(AuthToken).(string)
 		if !ok {
-			m.log.LogWarning("middleware", "CSRFCheck", "context error")
-			w.WriteHeader(http.StatusInternalServerError)
+			ctx = context.WithValue(ctx, CSRFValid, false)
+			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 		CSRFToken := r.Header.Get("Csrf-Token")

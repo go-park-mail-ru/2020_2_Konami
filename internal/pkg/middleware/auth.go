@@ -30,13 +30,13 @@ func (am *AuthMiddleware) Auth(next http.Handler) http.Handler {
 		ctx := r.Context()
 		token, err := r.Cookie("authToken")
 		if err != nil {
-			ctx = context.WithValue(ctx, AuthStatus, true)
+			ctx = context.WithValue(ctx, AuthStatus, false)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 		uId, err := am.SessionUC.GetUserId(token.Value)
 		if err != nil {
-			ctx = context.WithValue(ctx, AuthStatus, true)
+			ctx = context.WithValue(ctx, AuthStatus, false)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
