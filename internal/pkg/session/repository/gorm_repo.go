@@ -42,10 +42,17 @@ func ToModel(obj Session) models.Session {
 
 func (h SessionGormRepo) GetUserId(token string) (int, error) {
 	var s Session
+	/*
 	db := h.db.
 		Table("sessions").
 		Where("Token = ?", token).
 		First(&s)
+	*/
+	db := h.db.
+		Table("sessions").
+		Where("Token = ?", token).
+		Find(&s)
+
 	err := db.Error
 	if err != nil {
 		return 0, err

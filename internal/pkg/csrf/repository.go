@@ -1,3 +1,4 @@
+//go:generate mockgen -source=repository.go -destination=./repositoty_mock.go -package=csrf
 package csrf
 
 type Repository interface {

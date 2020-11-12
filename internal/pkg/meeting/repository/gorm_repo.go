@@ -160,8 +160,10 @@ func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
 
 func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (models.Meeting, error) {
 	var m Meeting
-	db := h.db.First(&m).
-		Where("id = ?", meetingId)
+
+	db := h.db.Where("id = ?", meetingId).Find(&m)
+/*	db := h.db.First(&m).
+		Where("id = ?", meetingId)*/
 
 	err := db.Error
 	if err != nil {

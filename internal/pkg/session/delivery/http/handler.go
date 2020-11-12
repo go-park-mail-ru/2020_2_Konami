@@ -8,16 +8,20 @@ import (
 	"konami_backend/internal/pkg/profile"
 	"konami_backend/internal/pkg/session"
 	hu "konami_backend/internal/pkg/utils/http_utils"
+	"konami_backend/logger"
 	"net/http"
+	"strconv"
 )
 
 type SessionHandler struct {
 	SessionUC session.UseCase
 	ProfileUC profile.UseCase
+	Log    *logger.Logger
 }
 
 func (h *SessionHandler) GetUserId(w http.ResponseWriter, r *http.Request) {
-	uId, ok := r.Context().Value(middleware.UserID).(int)
+	uStr, ok := r.Context().Value(middleware.UserID).(string)
+	uId, _ := strconv.Atoi(uStr)
 	if !ok {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
 		return
