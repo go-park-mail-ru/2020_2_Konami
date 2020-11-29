@@ -115,7 +115,7 @@ func (uc *MeetingUseCase) FilterSimilar(params meeting.FilterParams, meetingId i
 	return uc.MeetRepo.FilterSimilar(params, meetingId)
 }
 
-func (uc *MeetingUseCase) SearchMeetings(params meeting.FilterParams, meetingName string) ([]models.Meeting, error) {
-	return uc.MeetRepo.SearchMeetings(params, meetingName)
+func (uc *MeetingUseCase) SearchMeetings(params meeting.FilterParams,
+	meetingName string, limit int) ([]models.Meeting, error) {
+	return uc.MeetRepo.SearchMeetings(params, meetingName, limit)
 }
-

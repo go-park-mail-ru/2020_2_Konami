@@ -515,18 +515,23 @@ func (h *MeetingGormRepo) FilterSimilar(params meeting.FilterParams, meetingId i
 	return nil, err
 }
 
-func (h *MeetingGormRepo) SearchMeetings(params meeting.FilterParams, searchQuery string) ([]models.Meeting, error) {
+func (h *MeetingGormRepo) SearchMeetings(params meeting.FilterParams,
+	searchQuery string, limit int) ([]models.Meeting, error) {
 	var res []Meeting
-	err := h.db.Table("meetings").Where(`
-(to_tsvector('russian', title) || to_tsvector('english', title) ||
-to_tsvector('russian', text) || to_tsvector('english', text)|| 
-to_tsvector('russian', city) || to_tsvector('english', city)
+	db := h.db.Table("meetings").Where(`
+(setweight(to_tsvector('russian', title), 'A') || setweight(to_tsvector('english', title), 'A') ||
+setweight(to_tsvector('russian', text), 'B') || setweight(to_tsvector('english', text), 'B') || 
+setweight(to_tsvector('russian', city), 'C') || setweight(to_tsvector('english', city), 'C') ||
+setweight(to_tsvector('russian', address), 'D') || setweight(to_tsvector('english', address), 'D')
 ) @@ 
-(plainto_tsquery('russian', ?) || plainto_tsquery('english', ?))`,
-		searchQuery, searchQuery).Find(&res).Error
+(plainto_tsquery('russian', ?) || plainto_tsquery('english', ?))`, searchQuery, searchQuery)
+	if limit > 0 {
+		db = db.Limit(limit)
+	}
+	db = db.Find(&res)
 
-	if err != nil {
-		return nil, err
+	if db.Error != nil {
+		return nil, db.Error
 	}
 
 	return h.ToMeetingList(res, params.UserId)

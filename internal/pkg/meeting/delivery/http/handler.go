@@ -233,8 +233,12 @@ func (h *MeetingHandler) SearchMeetings(w http.ResponseWriter, r *http.Request) 
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
 	}
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil || limit <= 0 {
+		limit = -1
+	}
 	var meets []models.Meeting
-	meets, err := h.MeetingUC.SearchMeetings(params, searchQuery)
+	meets, err = h.MeetingUC.SearchMeetings(params, searchQuery, limit)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return

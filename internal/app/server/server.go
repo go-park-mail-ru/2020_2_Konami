@@ -271,9 +271,10 @@ func Migrate() {
 	}
 	db.Exec(`
 CREATE INDEX IF NOT EXISTS search_idx ON meetings USING gin((
-	to_tsvector('russian', title) || to_tsvector('english', title) ||
-	to_tsvector('russian', text) || to_tsvector('english', text)|| 
-	to_tsvector('russian', city) || to_tsvector('english', city)
+setweight(to_tsvector('russian', title), 'A') || setweight(to_tsvector('english', title), 'A') ||
+setweight(to_tsvector('russian', text), 'B') || setweight(to_tsvector('english', text), 'B') || 
+setweight(to_tsvector('russian', city), 'C') || setweight(to_tsvector('english', city), 'C') ||
+setweight(to_tsvector('russian', address), 'D') || setweight(to_tsvector('english', address), 'D')
 	));`)
 	var tags = []tagRepoPkg.Tag{
 		{Name: "ИТ и интернет"}, {Name: "Языки программирования"}, {Name: "C++"},
