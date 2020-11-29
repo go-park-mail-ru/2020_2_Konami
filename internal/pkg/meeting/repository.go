@@ -28,4 +28,6 @@ type Repository interface {
 	FilterRecommended(params FilterParams) ([]models.Meeting, error)
 	FilterTagged(params FilterParams, tagId int) ([]models.Meeting, error)
 	FilterSimilar(params FilterParams, meetingId int) ([]models.Meeting, error)
+
+	SearchMeetings(params FilterParams, meetingName string) ([]models.Meeting, error)
 }
