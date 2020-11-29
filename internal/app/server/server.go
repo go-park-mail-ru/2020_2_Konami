@@ -13,6 +13,9 @@ import (
 	meetingDeliveryPkg "konami_backend/internal/pkg/meeting/delivery/http"
 	meetingRepoPkg "konami_backend/internal/pkg/meeting/repository"
 	meetingUseCasePkg "konami_backend/internal/pkg/meeting/usecase"
+	messageDeliveryPkg "konami_backend/internal/pkg/message/delivery/http"
+	messageRepoPkg "konami_backend/internal/pkg/message/repository"
+	messageUseCasePkg "konami_backend/internal/pkg/message/usecase"
 	"konami_backend/internal/pkg/middleware"
 	profileDeliveryPkg "konami_backend/internal/pkg/profile/delivery/http"
 	profileRepoPkg "konami_backend/internal/pkg/profile/repository"
@@ -37,6 +40,7 @@ func InitDelivery(db *gorm.DB, rconn *redis.Pool, log *logger.Logger, maxReqSize
 	meetingDeliveryPkg.MeetingHandler,
 	profileDeliveryPkg.ProfileHandler,
 	sessionDeliveryPkg.SessionHandler,
+	messageDeliveryPkg.MessageHandler,
 	middleware.AuthMiddleware,
 	middleware.CSRFMiddleware,
 	middleware.AccessLogMiddleware,
@@ -47,19 +51,22 @@ func InitDelivery(db *gorm.DB, rconn *redis.Pool, log *logger.Logger, maxReqSize
 	profileRepo := profileRepoPkg.NewProfileGormRepo(db)
 	sessionRepo := sessionRepoPkg.NewSessionGormRepo(db)
 	tagRepo := tagRepoPkg.NewTagGormRepo(db)
+	msgRepo := messageRepoPkg.NewMeetingGormRepo(db)
 	uploadsHandler := uploadsHandlerPkg.NewUploadsHandler(uploadsDir)
 	csrfUC, err := csrfUseCasePkg.NewCsrfUseCase(csrfSecret, csrfExpire, csrfRepo)
 	if err != nil {
 		log.Error(err)
 		return csrfDeliveryPkg.CSRFHandler{}, meetingDeliveryPkg.MeetingHandler{},
 			profileDeliveryPkg.ProfileHandler{}, sessionDeliveryPkg.SessionHandler{},
-			middleware.AuthMiddleware{}, middleware.CSRFMiddleware{}, middleware.AccessLogMiddleware{}, err
+			messageDeliveryPkg.MessageHandler{}, middleware.AuthMiddleware{},
+			middleware.CSRFMiddleware{}, middleware.AccessLogMiddleware{}, err
 	}
 	meetingUC := meetingUseCasePkg.NewMeetingUseCase(
 		meetingRepo, uploadsHandler, tagRepo, meetPicsDir, defMeetPic)
 	profileUC := profileUseCasePkg.NewProfileUseCase(
 		profileRepo, uploadsHandler, tagRepo, userPicsDir, defUserPic)
 	sessionUC := sessionUseCasePkg.NewSessionUseCase(sessionRepo)
+	msgUC := messageUseCasePkg.NewMessageUseCase(msgRepo)
 	csrfDelivery := csrfDeliveryPkg.CSRFHandler{
 		CsrfUC: csrfUC,
 		Log:    log,
@@ -78,10 +85,15 @@ func InitDelivery(db *gorm.DB, rconn *redis.Pool, log *logger.Logger, maxReqSize
 		SessionUC: sessionUC,
 		ProfileUC: profileUC,
 	}
+	msgDelivery := messageDeliveryPkg.MessageHandler{
+		MessageUC:  msgUC,
+		Log:        log,
+		MaxReqSize: maxReqSize,
+	}
 	authM := middleware.NewAuthMiddleware(profileUC, sessionUC)
 	csrfM := middleware.NewCsrfMiddleware(csrfUC, log)
 	logM := middleware.NewAccessLogMiddleware(log)
-	return csrfDelivery, meetingDelivery, profileDelivery, sessionDelivery, authM, csrfM, logM, nil
+	return csrfDelivery, meetingDelivery, profileDelivery, sessionDelivery, msgDelivery, authM, csrfM, logM, nil
 }
 
 func InitRouter(
@@ -89,6 +101,7 @@ func InitRouter(
 	meeting meetingDeliveryPkg.MeetingHandler,
 	profile profileDeliveryPkg.ProfileHandler,
 	session sessionDeliveryPkg.SessionHandler,
+	message messageDeliveryPkg.MessageHandler,
 	authM middleware.AuthMiddleware,
 	csrfM middleware.CSRFMiddleware,
 	logM middleware.AccessLogMiddleware,
@@ -118,6 +131,11 @@ func InitRouter(
 	rApi.HandleFunc("/meeting", meeting.UpdateMeeting).Methods("PATCH")
 	rApi.HandleFunc("/user", profile.EditUser).Methods("PATCH")
 	rApi.HandleFunc("/images", profile.UploadUserPic).Methods("POST")
+
+	rApi.HandleFunc("/messages", message.GetMessages).Methods("GET")
+	rApi.HandleFunc("/message", message.SendMessage).Methods("GET")
+	rApi.HandleFunc("/ws", message.Upgrade)
+
 	r.Use(panicM.PanicRecovery)
 	r.Use(middleware.HeadersMiddleware)
 	r.Use(logM.Log)
@@ -171,7 +189,7 @@ func Start() {
 
 	var maxRecSize int64 = 10 * 1024 * 1024
 	var csrfDuration int64 = 3600
-	csrf, meeting, profile, session, authM, csrfM, logM, err := InitDelivery(
+	csrf, meeting, profile, session, msg, authM, csrfM, logM, err := InitDelivery(
 		db, redisConn, log, maxRecSize,
 		os.Getenv("CSRF_SECRET"), csrfDuration,
 		"uploads", "meetingpics", "userpics",
@@ -182,7 +200,7 @@ func Start() {
 	}
 
 	panicM := middleware.NewPanicMiddleware(log)
-	r := InitRouter(csrf, meeting, profile, session, authM, csrfM, logM, panicM)
+	r := InitRouter(csrf, meeting, profile, session, msg, authM, csrfM, logM, panicM)
 	c := corsInit.InitCors()
 	h := c.Handler(r)
 
@@ -240,6 +258,7 @@ func Migrate() {
 		&meetingRepoPkg.Like{},
 		&meetingRepoPkg.Meeting{},
 		&sessionRepoPkg.Session{},
+		&messageRepoPkg.Message{},
 	)
 	if err != nil {
 		log.Fatalf("failed to migrate db: %v", err)
@@ -285,6 +304,7 @@ func Truncate() {
 	db.Exec("DELETE FROM sessions")
 	db.Exec("DELETE FROM profiles")
 	db.Exec("DELETE FROM tags")
+	db.Exec("DELETE FROM messages")
 	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.InterestTag{})
 	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.SkillTag{})
 }
