@@ -1,12 +1,13 @@
 package repository
 
 import (
+	"database/sql"
 	"errors"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"konami_backend/internal/pkg/meeting"
 	"konami_backend/internal/pkg/models"
+	profileRepo "konami_backend/internal/pkg/profile/repository"
 	tagRepo "konami_backend/internal/pkg/tag/repository"
-	"strings"
 	"time"
 )
 
@@ -19,20 +20,21 @@ func NewMeetingGormRepo(db *gorm.DB) meeting.Repository {
 }
 
 type Meeting struct {
-	Id        int `gorm:"primaryKey;autoIncrement;"`
-	AuthorId  int
-	Title     string
-	Text      string
-	ImgSrc    string
-	Tags      []tagRepo.Tag `gorm:"many2many:meeting_tags;"`
-	City      string
-	Address   string
-	StartDate time.Time
-	EndDate   time.Time
-	Seats     int
-	SeatsLeft int
-	Regs      []Registration `gorm:"foreignKey:MeetingId"`
-	Likes     []Like         `gorm:"foreignKey:MeetingId"`
+	Id         int `gorm:"primaryKey;autoIncrement;"`
+	AuthorId   int
+	Title      string
+	Text       string
+	ImgSrc     string
+	Tags       []tagRepo.Tag `gorm:"many2many:meeting_tags;"`
+	City       string
+	Address    string
+	StartDate  time.Time
+	EndDate    time.Time
+	Seats      int
+	SeatsLeft  int
+	LikesCount int
+	Regs       []Registration `gorm:"foreignKey:MeetingId"`
+	Likes      []Like         `gorm:"foreignKey:MeetingId"`
 }
 
 type Registration struct {
@@ -61,19 +63,19 @@ func (l *Like) TableName() string {
 
 func ToDbObject(data models.MeetingCard) (Meeting, error) {
 	m := Meeting{
-		AuthorId:  data.AuthorId,
-		Title:     data.Label.Title,
-		Text:      data.Text,
-		ImgSrc:    data.Label.Cover,
-		City:      data.City,
-		Address:   data.Address,
-		Seats:     data.Seats,
-		SeatsLeft: data.SeatsLeft,
+		AuthorId:   data.AuthorId,
+		Title:      data.Label.Title,
+		Text:       data.Text,
+		ImgSrc:     data.Label.Cover,
+		City:       data.City,
+		Address:    data.Address,
+		Seats:      data.Seats,
+		SeatsLeft:  data.SeatsLeft,
+		LikesCount: data.LikesCount,
 	}
 	m.Tags = make([]tagRepo.Tag, len(data.Tags))
 	for i, val := range data.Tags {
 		tag := tagRepo.ToDbObject(*val)
-		tag.Name = strings.TrimSuffix(tag.Name, "×")
 		m.Tags[i] = tag
 	}
 	layout := "2006-01-02T15:04:05.000Z0700"
@@ -98,15 +100,16 @@ func ToMeetingLabel(obj Meeting) models.MeetingLabel {
 func ToMeetingCard(obj Meeting) models.MeetingCard {
 	label := ToMeetingLabel(obj)
 	m := models.MeetingCard{
-		Label:     &label,
-		AuthorId:  obj.AuthorId,
-		Text:      obj.Text,
-		Address:   obj.Address,
-		City:      obj.City,
-		StartDate: obj.StartDate.Format("2006-01-02T15:04:05.000Z0700"),
-		EndDate:   obj.EndDate.Format("2006-01-02T15:04:05.000Z0700"),
-		Seats:     obj.Seats,
-		SeatsLeft: obj.SeatsLeft,
+		Label:      &label,
+		AuthorId:   obj.AuthorId,
+		Text:       obj.Text,
+		Address:    obj.Address,
+		City:       obj.City,
+		StartDate:  obj.StartDate.Format("2006-01-02T15:04:05.000Z0700"),
+		EndDate:    obj.EndDate.Format("2006-01-02T15:04:05.000Z0700"),
+		Seats:      obj.Seats,
+		SeatsLeft:  obj.SeatsLeft,
+		LikesCount: obj.LikesCount,
 	}
 	m.Tags = make([]*models.Tag, len(obj.Tags))
 	for i, val := range obj.Tags {
@@ -128,6 +131,48 @@ func (h *MeetingGormRepo) ToMeeting(obj Meeting, userId int) models.Meeting {
 	return m
 }
 
+func (h *MeetingGormRepo) ToMeetingDetails(obj Meeting, userId int) (models.MeetingDetails, error) {
+	card := ToMeetingCard(obj)
+	m := models.MeetingDetails{Card: &card}
+	if userId != -1 && h.LikeExists(obj.Id, userId) {
+		m.Like = true
+	}
+	if userId != -1 && h.RegExists(obj.Id, userId) {
+		m.Reg = true
+	}
+	var err error
+	m.Registrations, err = h.GetRegistrations(obj)
+	return m, err
+}
+
+func (h *MeetingGormRepo) ToMeetingList(meetings []Meeting, userId int) ([]models.Meeting, error) {
+	result := make([]models.Meeting, len(meetings))
+	for i, el := range meetings {
+		result[i] = h.ToMeeting(el, userId)
+	}
+	return result, nil
+}
+
+func (h *MeetingGormRepo) GetRegistrations(m Meeting) ([]*models.ProfileLabel, error) {
+	var p profileRepo.Profile
+	res := make([]*models.ProfileLabel, len(m.Regs))
+	for i, reg := range m.Regs {
+		db := h.db.
+			Where("id = ?", reg.UserId).
+			First(&p)
+		err := db.Error
+		if err != nil {
+			return nil, err
+		}
+		res[i] = &models.ProfileLabel{
+			Id:     p.Id,
+			Name:   p.Name,
+			ImgSrc: p.ImgSrc,
+		}
+	}
+	return res, nil
+}
+
 func (h *MeetingGormRepo) LikeExists(meetId int, userId int) bool {
 	var l Like
 	db := h.db.
@@ -142,6 +187,7 @@ func (h *MeetingGormRepo) LikeExists(meetId int, userId int) bool {
 
 func (h *MeetingGormRepo) SetLike(meetId int, userId int) error {
 	var l Like
+	newLike := false
 	db := h.db.
 		Where("meeting_id = ?", meetId).
 		Where("user_id = ?", userId).
@@ -152,6 +198,20 @@ func (h *MeetingGormRepo) SetLike(meetId int, userId int) error {
 			UserId:    userId,
 		}
 		db = h.db.Create(&l)
+		if db.Error == nil {
+			newLike = true
+		}
+	}
+	if !newLike {
+		return db.Error
+	}
+	var m Meeting
+	db = h.db.
+		Where("id = ?", meetId).
+		First(&m)
+	if db.Error == nil {
+		m.LikesCount += 1
+		db = h.db.Save(m)
 	}
 	return db.Error
 }
@@ -161,6 +221,16 @@ func (h *MeetingGormRepo) RemoveLike(meetId int, userId int) error {
 		Where("meeting_id = ?", meetId).
 		Where("user_id = ?", userId).
 		Delete(Like{})
+	if db.Error == nil && db.RowsAffected > 0 {
+		var m Meeting
+		db = h.db.
+			Where("id = ?", meetId).
+			First(&m)
+		if db.Error == nil {
+			m.LikesCount -= 1
+			db = h.db.Save(m)
+		}
+	}
 	return db.Error
 }
 
@@ -178,7 +248,18 @@ func (h *MeetingGormRepo) RegExists(meetId int, userId int) bool {
 
 func (h *MeetingGormRepo) SetReg(meetId int, userId int) error {
 	var l Registration
+	var m Meeting
 	db := h.db.
+		Where("id = ?", meetId).
+		First(&m)
+	if db.Error != nil {
+		return db.Error
+	}
+	if m.SeatsLeft == 0 {
+		return meeting.ErrNoSeatsLeft
+	}
+	newReg := false
+	db = h.db.
 		Where("meeting_id = ?", meetId).
 		Where("user_id = ?", userId).
 		First(&l)
@@ -188,6 +269,11 @@ func (h *MeetingGormRepo) SetReg(meetId int, userId int) error {
 			UserId:    userId,
 		}
 		db = h.db.Create(&l)
+		newReg = db.Error == nil
+	}
+	if newReg {
+		m.SeatsLeft -= 1
+		db = h.db.Save(m)
 	}
 	return db.Error
 }
@@ -197,7 +283,25 @@ func (h *MeetingGormRepo) RemoveReg(meetId int, userId int) error {
 		Where("meeting_id = ?", meetId).
 		Where("user_id = ?", userId).
 		Delete(Registration{})
+	if db.Error == nil && db.RowsAffected > 0 {
+		var m Meeting
+		db = h.db.
+			Where("id = ?", meetId).
+			First(&m)
+		if db.Error == nil {
+			m.SeatsLeft += 1
+			db = h.db.Save(m)
+		}
+	}
 	return db.Error
+}
+
+func (h *MeetingGormRepo) GetQuery(dest *[]Meeting, params meeting.FilterParams) *gorm.DB {
+	return h.db.Find(dest).
+		Where("Id > ?", params.PrevId).
+		Where("StartDate >= ? ", params.StartDate).
+		Where("EndDate <= ?", params.EndDate).
+		Limit(params.CountLimit)
 }
 
 func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
@@ -213,20 +317,21 @@ func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
 	return m.Id, nil
 }
 
-func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (models.Meeting, error) {
+func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (models.MeetingDetails, error) {
 	if !authorized {
 		userId = -1
 	}
 	var m Meeting
-	db := h.db.Preload("Tags").
+	db := h.db.
+		Preload("Tags").
+		Preload("Regs").
 		Where("id = ?", meetingId).
 		First(&m)
 	err := db.Error
 	if err != nil {
-		return models.Meeting{}, err
+		return models.MeetingDetails{}, err
 	}
-	res := h.ToMeeting(m, userId)
-	return res, nil
+	return h.ToMeetingDetails(m, userId)
 }
 
 func (h *MeetingGormRepo) UpdateMeeting(userId int, update models.MeetingUpdate) error {
@@ -253,74 +358,33 @@ func (h *MeetingGormRepo) UpdateMeeting(userId int, update models.MeetingUpdate)
 	return err
 }
 
-func (h *MeetingGormRepo) GetAll(userId int) ([]models.Meeting, error) {
+func (h *MeetingGormRepo) GetNextMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
 	var meetings []Meeting
-	db := h.db.Find(&meetings)
+	db := h.GetQuery(&meetings, params).Order("StartDate ASC")
 	err := db.Error
 	if err != nil {
 		return []models.Meeting{}, err
 	}
-	result := make([]models.Meeting, len(meetings))
-	for i, el := range meetings {
-		result[i] = h.ToMeeting(el, userId)
-	}
-	return result, nil
+	return h.ToMeetingList(meetings, params.UserId)
 }
 
-func (h *MeetingGormRepo) FilterDate(dt time.Time, userId int) ([]models.Meeting, error) {
-	dateSlice := strings.Split(dt.Format("2006-01-02"), "-")
+func (h *MeetingGormRepo) GetTopMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
 	var meetings []Meeting
-	db := h.db.Find(&meetings).
-		Where("DATEPART(yy, StartDate) = ?", dateSlice[0]).
-		Where("DATEPART(mm, StartDate) = ?", dateSlice[1]).
-		Where("DATEPART(dd, StartDate) = ?", dateSlice[2]).
-		Order("StartDate ASC")
-
+	db := h.GetQuery(&meetings, params).Order("LikesCount DESC")
 	err := db.Error
 	if err != nil {
 		return []models.Meeting{}, err
 	}
-	result := make([]models.Meeting, len(meetings))
-	for i, el := range meetings {
-		result[i] = h.ToMeeting(el, userId)
-	}
-	return result, nil
+	return h.ToMeetingList(meetings, params.UserId)
 }
 
-func (h *MeetingGormRepo) FilterToday(userId int) ([]models.Meeting, error) {
-	today := time.Now()
-	return h.FilterDate(today, userId)
-}
-
-func (h *MeetingGormRepo) FilterTomorrow(userId int) ([]models.Meeting, error) {
-	tomorrow := time.Now().Add(24 * time.Hour)
-	return h.FilterDate(tomorrow, userId)
-}
-
-func (h *MeetingGormRepo) FilterFuture(userId int) ([]models.Meeting, error) {
-	dateSlice := strings.Split(time.Now().Format("2006-01-02"), "-")
-	var meetings []Meeting
-	db := h.db.Find(&meetings).
-		Where("DATEPART(yy, StartDate) >= ?", dateSlice[0]).
-		Where("DATEPART(mm, StartDate) >= ?", dateSlice[1]).
-		Where("DATEPART(dd, StartDate) >= ?", dateSlice[2]).
-		Order("StartDate ASC")
-
-	err := db.Error
-	if err != nil {
-		return []models.Meeting{}, err
-	}
-	result := make([]models.Meeting, len(meetings))
-	for i, el := range meetings {
-		result[i] = h.ToMeeting(el, userId)
-	}
-	return result, nil
-}
-
-func (h *MeetingGormRepo) FilterLiked(userId int) ([]models.Meeting, error) {
+func (h *MeetingGormRepo) FilterLiked(params meeting.FilterParams) ([]models.Meeting, error) {
 	var likes []Like
 	db := h.db.Find(&likes).
-		Where("UserId = ?", userId)
+		Where("UserId = ?", params.UserId).
+		Where("MeetingId > ?", params.PrevId).
+		Order("MeetingId ASC").
+		Limit(params.CountLimit)
 
 	if db.Error != nil {
 		return nil, db.Error
@@ -334,15 +398,18 @@ func (h *MeetingGormRepo) FilterLiked(userId int) ([]models.Meeting, error) {
 		if db.Error != nil {
 			return nil, db.Error
 		}
-		result[i] = h.ToMeeting(m, userId)
+		result[i] = h.ToMeeting(m, params.UserId)
 	}
 	return result, nil
 }
 
-func (h *MeetingGormRepo) FilterRegistered(userId int) ([]models.Meeting, error) {
+func (h *MeetingGormRepo) FilterRegistered(params meeting.FilterParams) ([]models.Meeting, error) {
 	var regs []Registration
 	db := h.db.Find(&regs).
-		Where("UserId = ?", userId)
+		Where("UserId = ?", params.UserId).
+		Where("MeetingId > ?", params.PrevId).
+		Order("MeetingId ASC").
+		Limit(params.CountLimit)
 
 	if db.Error != nil {
 		return nil, db.Error
@@ -353,11 +420,99 @@ func (h *MeetingGormRepo) FilterRegistered(userId int) ([]models.Meeting, error)
 		db = h.db.
 			Where("id = ?", el.MeetingId).
 			First(&m)
-
 		if db.Error != nil {
 			return nil, db.Error
 		}
-		result[i] = h.ToMeeting(m, userId)
+		result[i] = h.ToMeeting(m, params.UserId)
 	}
 	return result, nil
+}
+
+func (h *MeetingGormRepo) ExtractMeetingsFromRows(params meeting.FilterParams, rows *sql.Rows) ([]Meeting, error) {
+	meetings := []Meeting{}
+	total := 0
+	var meetBuf Meeting
+	var meetId int
+	var err error
+	for err == nil && rows.Next() && total < params.CountLimit {
+		err = rows.Scan(&meetId)
+		db := h.db.
+			Where("id = ?", meetId).
+			First(&meetBuf)
+		if db.Error == nil && (meetBuf.StartDate.Before(params.StartDate) || meetBuf.EndDate.After(params.EndDate)) {
+			continue
+		}
+		meetings = append(meetings, meetBuf)
+		total += 1
+		err = db.Error
+	}
+	return meetings, err
+}
+
+func (h *MeetingGormRepo) FilterRecommended(params meeting.FilterParams) ([]models.Meeting, error) {
+	var userProfile profileRepo.Profile
+	db := h.db.
+		Where("id = ?", params.UserId).
+		Preload("MeetingTags").
+		First(&userProfile)
+	err := db.Error
+	if err != nil {
+		return nil, err
+	}
+	tagIds := []int{} // Tags to which user is subscribed
+	for _, tag := range userProfile.MeetingTags {
+		tagIds = append(tagIds, tag.Id)
+	}
+	// Meetings with whose tags
+	rows, err := h.db.Table("meeting_tags").
+		Where("tag_id IN ?", tagIds).
+		Where("meeting_id > ?", params.PrevId).
+		Order("meeting_id ASC").
+		Select("meeting_id").Rows()
+	defer rows.Close()
+	meetings, err := h.ExtractMeetingsFromRows(params, rows)
+	if err == nil {
+		return h.ToMeetingList(meetings, params.UserId)
+	}
+	return nil, err
+}
+
+func (h *MeetingGormRepo) FilterTagged(params meeting.FilterParams, tagId int) ([]models.Meeting, error) {
+	rows, err := h.db.Table("meeting_tags").
+		Where("tag_id = ?", tagId).
+		Where("meeting_id > ?", params.PrevId).
+		Order("meeting_id ASC").
+		Select("meeting_id").Rows()
+	defer rows.Close()
+	meetings, err := h.ExtractMeetingsFromRows(params, rows)
+	if err == nil {
+		return h.ToMeetingList(meetings, params.UserId)
+	}
+	return nil, err
+}
+
+func (h *MeetingGormRepo) FilterSimilar(params meeting.FilterParams, meetingId int) ([]models.Meeting, error) {
+	var m Meeting
+	db := h.db.Preload("Tags").
+		Where("id = ?", meetingId).
+		First(&m)
+	err := db.Error
+	if err != nil {
+		return nil, err
+	}
+	tagIds := []int{}
+	for _, tag := range m.Tags {
+		tagIds = append(tagIds, tag.Id)
+	}
+	rows, err := h.db.Table("meeting_tags").
+		Where("tag_id IN ?", tagIds).
+		Where("meeting_id > ?", params.PrevId).
+		Order("meeting_id ASC").
+		Select("meeting_id").Rows()
+	defer rows.Close()
+	meetings, err := h.ExtractMeetingsFromRows(params, rows)
+	if err == nil {
+		return h.ToMeetingList(meetings, params.UserId)
+	}
+	return nil, err
 }

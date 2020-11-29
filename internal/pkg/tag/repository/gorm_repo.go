@@ -2,7 +2,7 @@ package repository
 
 import (
 	"errors"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/tag"
 	"strings"
@@ -66,16 +66,17 @@ func (h *TagGormRepo) GetTagByName(name string) (models.Tag, error) {
 }
 
 func (h *TagGormRepo) CreateTag(name string) (models.Tag, error) {
-	t := Tag{Name: strings.TrimSuffix(name, "×")}
+	t := Tag{Name: name}
 	db := h.db.Create(&t)
 	err := db.Error
 	if err != nil {
 		return models.Tag{}, err
 	}
-	return ToModel(t), nil
+	return models.Tag{Name: t.Name}, nil
 }
 
 func (h *TagGormRepo) GetOrCreateTag(name string) (models.Tag, error) {
+	name = strings.TrimSuffix(name, "×")
 	result, err := h.GetTagByName(name)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		result, err = h.CreateTag(name)

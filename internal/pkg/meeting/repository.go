@@ -3,18 +3,29 @@ package meeting
 import (
 	"errors"
 	"konami_backend/internal/pkg/models"
+	"time"
 )
 
 var ErrMeetingNotFound = errors.New("meeting not found")
+var ErrNoSeatsLeft = errors.New("no meeting seats left")
+
+type FilterParams struct {
+	StartDate  time.Time
+	EndDate    time.Time
+	PrevId     int
+	CountLimit int
+	UserId     int
+}
 
 type Repository interface {
 	CreateMeeting(meeting models.Meeting) (meetingId int, err error)
-	GetMeeting(meetingId, userId int, authorized bool) (models.Meeting, error)
+	GetMeeting(meetingId, userId int, authorized bool) (models.MeetingDetails, error)
 	UpdateMeeting(userId int, update models.MeetingUpdate) error
-	GetAll(userId int) ([]models.Meeting, error)
-	FilterToday(userId int) ([]models.Meeting, error)
-	FilterTomorrow(userId int) ([]models.Meeting, error)
-	FilterFuture(userId int) ([]models.Meeting, error)
-	FilterLiked(userId int) ([]models.Meeting, error)
-	FilterRegistered(userId int) ([]models.Meeting, error)
+	GetNextMeetings(params FilterParams) ([]models.Meeting, error)
+	GetTopMeetings(params FilterParams) ([]models.Meeting, error)
+	FilterLiked(params FilterParams) ([]models.Meeting, error)
+	FilterRegistered(params FilterParams) ([]models.Meeting, error)
+	FilterRecommended(params FilterParams) ([]models.Meeting, error)
+	FilterTagged(params FilterParams, tagId int) ([]models.Meeting, error)
+	FilterSimilar(params FilterParams, meetingId int) ([]models.Meeting, error)
 }

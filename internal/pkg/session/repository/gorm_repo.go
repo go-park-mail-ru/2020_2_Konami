@@ -2,7 +2,7 @@ package repository
 
 import (
 	"github.com/google/uuid"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/session"
 )

@@ -79,7 +79,7 @@ func (uc *MeetingUseCase) CreateMeeting(authorId int, data models.MeetingData) (
 	return uc.MeetRepo.CreateMeeting(m)
 }
 
-func (uc *MeetingUseCase) GetMeeting(meetingId, userId int, authorized bool) (models.Meeting, error) {
+func (uc *MeetingUseCase) GetMeeting(meetingId, userId int, authorized bool) (models.MeetingDetails, error) {
 	return uc.MeetRepo.GetMeeting(meetingId, userId, authorized)
 }
 
@@ -87,26 +87,30 @@ func (uc *MeetingUseCase) UpdateMeeting(userId int, update models.MeetingUpdate)
 	return uc.MeetRepo.UpdateMeeting(userId, update)
 }
 
-func (uc *MeetingUseCase) GetAll(userId int) ([]models.Meeting, error) {
-	return uc.MeetRepo.GetAll(userId)
+func (uc *MeetingUseCase) GetNextMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
+	return uc.MeetRepo.GetNextMeetings(params)
 }
 
-func (uc *MeetingUseCase) FilterToday(userId int) ([]models.Meeting, error) {
-	return uc.MeetRepo.FilterToday(userId)
+func (uc *MeetingUseCase) GetTopMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
+	return uc.MeetRepo.GetTopMeetings(params)
 }
 
-func (uc *MeetingUseCase) FilterTomorrow(userId int) ([]models.Meeting, error) {
-	return uc.MeetRepo.FilterTomorrow(userId)
+func (uc *MeetingUseCase) FilterLiked(params meeting.FilterParams) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterLiked(params)
 }
 
-func (uc *MeetingUseCase) FilterFuture(userId int) ([]models.Meeting, error) {
-	return uc.MeetRepo.FilterFuture(userId)
+func (uc *MeetingUseCase) FilterRegistered(params meeting.FilterParams) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterRegistered(params)
 }
 
-func (uc *MeetingUseCase) FilterLiked(userId int) ([]models.Meeting, error) {
-	return uc.MeetRepo.FilterLiked(userId)
+func (uc *MeetingUseCase) FilterRecommended(params meeting.FilterParams) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterRecommended(params)
 }
 
-func (uc *MeetingUseCase) FilterRegistered(userId int) ([]models.Meeting, error) {
-	return uc.MeetRepo.FilterRegistered(userId)
+func (uc *MeetingUseCase) FilterTagged(params meeting.FilterParams, tagId int) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterTagged(params, tagId)
+}
+
+func (uc *MeetingUseCase) FilterSimilar(params meeting.FilterParams, meetingId int) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterSimilar(params, meetingId)
 }

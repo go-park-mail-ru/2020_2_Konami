@@ -3,9 +3,10 @@ package server
 import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	csrfDeliveryPkg "konami_backend/internal/pkg/csrf/delivery/http"
 	csrfRepoPkg "konami_backend/internal/pkg/csrf/repository"
 	csrfUseCasePkg "konami_backend/internal/pkg/csrf/usecase"
@@ -102,7 +103,15 @@ func InitRouter(
 	rApi.HandleFunc("/login", session.LogIn).Methods("POST")
 	rApi.HandleFunc("/csrf", csrf.GetCSRF).Methods("GET")
 	rApi.HandleFunc("/meeting", meeting.GetMeeting).Methods("GET")
+
 	rApi.HandleFunc("/meetings", meeting.GetMeetingsList).Methods("GET")
+	rApi.HandleFunc("/meetings/my", meeting.GetUserMeetingsList).Methods("GET")
+	rApi.HandleFunc("/meetings/favorite", meeting.GetFavMeetingsList).Methods("GET")
+	rApi.HandleFunc("/meetings/top", meeting.GetTopMeetingsList).Methods("GET")
+	rApi.HandleFunc("/meetings/recommended", meeting.GetRecommendedList).Methods("GET")
+	rApi.HandleFunc("/meetings/tagged", meeting.GetTaggedMeetings).Methods("GET")
+	rApi.HandleFunc("/meetings/akin", meeting.GetAkinMeetings).Methods("GET")
+
 	rApi.HandleFunc("/me", session.GetUserId).Methods("GET")
 	rApi.HandleFunc("/logout", session.LogOut).Methods("DELETE")
 	rApi.HandleFunc("/meeting", meeting.CreateMeeting).Methods("POST")
@@ -113,8 +122,6 @@ func InitRouter(
 	r.Use(middleware.HeadersMiddleware)
 	r.Use(logM.Log)
 	r.Use(authM.Auth)
-	//rCSRF := r.Headers("Csrf-Token", "").Subrouter()
-	//rCSRF.Use(csrfM.CSRFCheck)
 	r.Use(csrfM.CSRFCheck)
 
 	return r
@@ -125,13 +132,17 @@ func Start() {
 	log = logger.NewLogger(os.Stdout)
 	log.SetLevel(logrus.TraceLevel)
 
-	dsn := "user=max password=Okto dbname=konamidb port=5432 sslmode=disable TimeZone=Europe/Moscow"
-	db, err := gorm.Open("postgres", dsn)
+	dsn := os.Getenv("DB_CONN")
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to launch db: %v", err)
 	}
-	defer db.Close()
-	if err := db.DB().Ping(); err != nil {
+	dbdb, err := db.DB()
+	if err != nil {
+		log.Fatalf("failed to launch db: %v", err)
+	}
+	defer dbdb.Close()
+	if err := dbdb.Ping(); err != nil {
 		log.Fatalf("failed to launch db: %v", err)
 	}
 	redisAddr := os.Getenv("REDIS_CONN")
@@ -207,22 +218,73 @@ func Start() {
 }
 
 func Migrate() {
-	db, err := gorm.Open("postgres", os.Getenv("DB_CONN"))
+	dsn := os.Getenv("DB_CONN")
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to launch db: %v", err)
 	}
-	defer db.Close()
-	if err := db.DB().Ping(); err != nil {
+	dbdb, err := db.DB()
+	if err != nil {
 		log.Fatalf("failed to launch db: %v", err)
 	}
-	db.AutoMigrate(
-		&meetingRepoPkg.Meeting{},
-		&meetingRepoPkg.Like{},
-		&meetingRepoPkg.Registration{},
-		&profileRepoPkg.Profile{},
-		&profileRepoPkg.InterestTag{},
-		&profileRepoPkg.SkillTag{},
-		&sessionRepoPkg.Session{},
+	defer dbdb.Close()
+	if err := dbdb.Ping(); err != nil {
+		log.Fatalf("failed to launch db: %v", err)
+	}
+	err = db.AutoMigrate(
 		&tagRepoPkg.Tag{},
+		&profileRepoPkg.SkillTag{},
+		&profileRepoPkg.InterestTag{},
+		&profileRepoPkg.Profile{},
+		&meetingRepoPkg.Registration{},
+		&meetingRepoPkg.Like{},
+		&meetingRepoPkg.Meeting{},
+		&sessionRepoPkg.Session{},
 	)
+	if err != nil {
+		log.Fatalf("failed to migrate db: %v", err)
+	}
+	var tags = []tagRepoPkg.Tag{
+		{Name: "ИТ и интернет"}, {Name: "Языки программирования"}, {Name: "C++"},
+		{Name: "Python"}, {Name: "JavaScript"}, {Name: "Golang"}, {Name: "Mail.ru"},
+		{Name: "Yandex"}, {Name: "Бизнес"}, {Name: "Хобби"}, {Name: "Творчество"},
+		{Name: "Кино"}, {Name: "Театры"}, {Name: "Вечеринки"}, {Name: "Еда"}, {Name: "Концерты"},
+		{Name: "Спорт"}, {Name: "Красота"}, {Name: "Здоровье"}, {Name: "Наука"},
+		{Name: "Выставки"}, {Name: "Искусство"}, {Name: "Культура"}, {Name: "Экскурсии"},
+		{Name: "Путешествия"}, {Name: "Психология"}, {Name: "Образование"}, {Name: "Россия"}}
+
+	for _, tag := range tags {
+		res := db.Create(&tag)
+		if res.Error != nil {
+			log.Fatalf("failed to create tags: %v", err)
+		}
+	}
+}
+
+func Truncate() {
+	dsn := os.Getenv("DB_CONN")
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("failed to launch db: %v", err)
+	}
+	dbdb, err := db.DB()
+	if err != nil {
+		log.Fatalf("failed to launch db: %v", err)
+	}
+	defer dbdb.Close()
+	if err := dbdb.Ping(); err != nil {
+		log.Fatalf("failed to launch db: %v", err)
+	}
+	db.Exec("DELETE FROM profile_skill_tags")
+	db.Exec("DELETE FROM profile_interest_tags")
+	db.Exec("DELETE FROM profile_meeting_tags")
+	db.Exec("DELETE FROM meeting_tags")
+	db.Exec("DELETE FROM registrations")
+	db.Exec("DELETE FROM likes")
+	db.Exec("DELETE FROM meetings")
+	db.Exec("DELETE FROM sessions")
+	db.Exec("DELETE FROM profiles")
+	db.Exec("DELETE FROM tags")
+	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.InterestTag{})
+	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.SkillTag{})
 }
