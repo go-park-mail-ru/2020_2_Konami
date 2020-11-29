@@ -126,7 +126,6 @@ func InitRouter(
 	rApi.HandleFunc("/meetings/akin", meeting.GetAkinMeetings).Methods("GET")
 	rApi.HandleFunc("/meetings/search", meeting.GetSearchMeetings).Methods("GET")
 
-
 	rApi.HandleFunc("/me", session.GetUserId).Methods("GET")
 	rApi.HandleFunc("/logout", session.LogOut).Methods("DELETE")
 	rApi.HandleFunc("/meeting", meeting.CreateMeeting).Methods("POST")
@@ -137,6 +136,7 @@ func InitRouter(
 	rApi.HandleFunc("/messages", message.GetMessages).Methods("GET")
 	rApi.HandleFunc("/message", message.SendMessage).Methods("GET")
 	rApi.HandleFunc("/ws", message.Upgrade)
+	go message.ServeWS()
 
 	r.Use(panicM.PanicRecovery)
 	r.Use(middleware.HeadersMiddleware)
