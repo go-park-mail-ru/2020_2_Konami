@@ -135,7 +135,7 @@ func InitRouter(
 	rApi.HandleFunc("/images", profile.UploadUserPic).Methods("POST")
 
 	rApi.HandleFunc("/messages", message.GetMessages).Methods("GET")
-	rApi.HandleFunc("/message", message.SendMessage).Methods("GET")
+	rApi.HandleFunc("/message", message.SendMessage).Methods("POST")
 	rApi.HandleFunc("/ws", message.Upgrade)
 	go message.ServeWS()
 
