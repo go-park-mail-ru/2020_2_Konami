@@ -111,6 +111,8 @@ func InitRouter(
 	rApi.HandleFunc("/meetings/recommended", meeting.GetRecommendedList).Methods("GET")
 	rApi.HandleFunc("/meetings/tagged", meeting.GetTaggedMeetings).Methods("GET")
 	rApi.HandleFunc("/meetings/akin", meeting.GetAkinMeetings).Methods("GET")
+	rApi.HandleFunc("/meetings/search", meeting.GetSearchMeetings).Methods("GET")
+
 
 	rApi.HandleFunc("/me", session.GetUserId).Methods("GET")
 	rApi.HandleFunc("/logout", session.LogOut).Methods("DELETE")

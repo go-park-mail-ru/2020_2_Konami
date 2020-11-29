@@ -516,3 +516,17 @@ func (h *MeetingGormRepo) FilterSimilar(params meeting.FilterParams, meetingId i
 	}
 	return nil, err
 }
+
+func (h *MeetingGormRepo) SearchMeetings(params meeting.FilterParams, meetingName string) ([]models.Meeting, error) {
+	var res []Meeting
+	err := h.db.Table("meetings").
+		Where("title @@ to_tsquery(?)", meetingName).
+		Or("text @@ to_tsquery(?)", meetingName).
+		Find(&res).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return h.ToMeetingList(res, params.UserId)
+}

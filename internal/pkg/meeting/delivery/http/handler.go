@@ -225,3 +225,19 @@ func (h *MeetingHandler) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 }
+
+func (h *MeetingHandler) GetSearchMeetings(w http.ResponseWriter, r *http.Request) {
+	params := GetQueryParams(r)
+	meetName := r.URL.Query().Get("meetName")
+	if meetName == "" {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	var meets []models.Meeting
+	meets, err := h.MeetingUC.SearchMeetings(params, meetName)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	hu.WriteJson(w, meets)
+}
