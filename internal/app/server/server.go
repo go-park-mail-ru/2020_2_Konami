@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	csrfDeliveryPkg "konami_backend/internal/pkg/csrf/delivery/http"
 	csrfRepoPkg "konami_backend/internal/pkg/csrf/repository"
 	csrfUseCasePkg "konami_backend/internal/pkg/csrf/usecase"
@@ -26,13 +27,13 @@ import (
 	tagRepoPkg "konami_backend/internal/pkg/tag/repository"
 	corsInit "konami_backend/internal/pkg/utils/cors_init"
 	uploadsHandlerPkg "konami_backend/internal/pkg/utils/uploads_handler"
-	"konami_backend/logger"
+	loggerPkg "konami_backend/logger"
 	"log"
 	"net/http"
 	"os"
 )
 
-func InitDelivery(db *gorm.DB, rconn *redis.Pool, log *logger.Logger, maxReqSize int64,
+func InitDelivery(db *gorm.DB, rconn *redis.Pool, log *loggerPkg.Logger, maxReqSize int64,
 	csrfSecret string, csrfExpire int64,
 	uploadsDir, meetPicsDir, userPicsDir, defMeetPic, defUserPic string) (
 
@@ -47,8 +48,8 @@ func InitDelivery(db *gorm.DB, rconn *redis.Pool, log *logger.Logger, maxReqSize
 	error,
 ) {
 	csrfRepo := csrfRepoPkg.NewRedisTokenManager(rconn)
-	meetingRepo := meetingRepoPkg.NewMeetingGormRepo(db)
 	profileRepo := profileRepoPkg.NewProfileGormRepo(db)
+	meetingRepo := meetingRepoPkg.NewMeetingGormRepo(db, profileRepo)
 	sessionRepo := sessionRepoPkg.NewSessionGormRepo(db)
 	tagRepo := tagRepoPkg.NewTagGormRepo(db)
 	msgRepo := messageRepoPkg.NewMeetingGormRepo(db)
@@ -124,7 +125,7 @@ func InitRouter(
 	rApi.HandleFunc("/meetings/recommended", meeting.GetRecommendedList).Methods("GET")
 	rApi.HandleFunc("/meetings/tagged", meeting.GetTaggedMeetings).Methods("GET")
 	rApi.HandleFunc("/meetings/akin", meeting.GetAkinMeetings).Methods("GET")
-	rApi.HandleFunc("/meetings/search", meeting.GetSearchMeetings).Methods("GET")
+	rApi.HandleFunc("/meetings/search", meeting.SearchMeetings).Methods("GET")
 
 	rApi.HandleFunc("/me", session.GetUserId).Methods("GET")
 	rApi.HandleFunc("/logout", session.LogOut).Methods("DELETE")
@@ -143,27 +144,25 @@ func InitRouter(
 	r.Use(logM.Log)
 	r.Use(authM.Auth)
 	r.Use(csrfM.CSRFCheck)
-
 	return r
 }
 
 func Start() {
-	var log *logger.Logger
-	log = logger.NewLogger(os.Stdout)
-	log.SetLevel(logrus.TraceLevel)
-
+	var logger *loggerPkg.Logger
+	logger = loggerPkg.NewLogger(os.Stdout)
+	logger.SetLevel(logrus.TraceLevel)
 	dsn := os.Getenv("DB_CONN")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("failed to launch db: %v", err)
+		logger.Fatalf("failed to launch db: %v", err)
 	}
 	dbdb, err := db.DB()
 	if err != nil {
-		log.Fatalf("failed to launch db: %v", err)
+		logger.Fatalf("failed to launch db: %v", err)
 	}
 	defer dbdb.Close()
 	if err := dbdb.Ping(); err != nil {
-		log.Fatalf("failed to launch db: %v", err)
+		logger.Fatalf("failed to launch db: %v", err)
 	}
 	redisAddr := os.Getenv("REDIS_CONN")
 	if redisAddr == "" {
@@ -176,32 +175,37 @@ func Start() {
 		Dial: func() (redis.Conn, error) {
 			conn, err := redis.DialURL(redisAddr)
 			if err != nil {
-				log.Fatalf("failed to launch redis pool: %v", err)
+				logger.Fatalf("failed to launch redis pool: %v", err)
 			}
 			return conn, err
 		},
 	}
 	defer redisConn.Close()
 
+	_, err = redisConn.Get().Do("PING")
+	if err != nil {
+		logger.Fatalf("redis connection failed")
+	}
+
 	csrfSecret := os.Getenv("CSRF_SECRET")
 	if csrfSecret == "" {
-		log.Fatalf("csrf secret not provided")
+		logger.Fatalf("csrf secret not provided")
 
 	}
 
 	var maxRecSize int64 = 10 * 1024 * 1024
 	var csrfDuration int64 = 3600
 	csrf, meeting, profile, session, msg, authM, csrfM, logM, err := InitDelivery(
-		db, redisConn, log, maxRecSize,
+		db, redisConn, logger, maxRecSize,
 		os.Getenv("CSRF_SECRET"), csrfDuration,
 		"uploads", "meetingpics", "userpics",
 		"assets/paris.jpg", "assets/empty-avatar.jpeg")
 	if err != nil {
-		log.Fatalf("failed to init delivery: %v", err)
+		logger.Fatalf("failed to init delivery: %v", err)
 		return
 	}
 
-	panicM := middleware.NewPanicMiddleware(log)
+	panicM := middleware.NewPanicMiddleware(logger)
 	r := InitRouter(csrf, meeting, profile, session, msg, authM, csrfM, logM, panicM)
 	c := corsInit.InitCors()
 	h := c.Handler(r)
@@ -225,15 +229,15 @@ func Start() {
 	tlsPort := os.Getenv("TLSPORT")
 
 	if tlsPort == "" {
-		log.Println("Launching at HTTP port " + port)
+		logger.Println("Launching at HTTP port " + port)
 		err = http.ListenAndServe(":"+port, h)
 	} else {
-		log.Println("Launching at HTTPS port " + tlsPort)
+		logger.Println("Launching at HTTPS port " + tlsPort)
 		err = http.ListenAndServeTLS(":"+tlsPort, certFile, keyFile, h)
 	}
 
 	if err != nil {
-		log.Fatal("Unable to launch server: ", err)
+		logger.Fatal("Unable to launch server: ", err)
 	}
 }
 
@@ -265,6 +269,12 @@ func Migrate() {
 	if err != nil {
 		log.Fatalf("failed to migrate db: %v", err)
 	}
+	db.Exec(`
+CREATE INDEX IF NOT EXISTS search_idx ON meetings USING gin((
+	to_tsvector('russian', title) || to_tsvector('english', title) ||
+	to_tsvector('russian', text) || to_tsvector('english', text)|| 
+	to_tsvector('russian', city) || to_tsvector('english', city)
+	));`)
 	var tags = []tagRepoPkg.Tag{
 		{Name: "ИТ и интернет"}, {Name: "Языки программирования"}, {Name: "C++"},
 		{Name: "Python"}, {Name: "JavaScript"}, {Name: "Golang"}, {Name: "Mail.ru"},
@@ -275,7 +285,7 @@ func Migrate() {
 		{Name: "Путешествия"}, {Name: "Психология"}, {Name: "Образование"}, {Name: "Россия"}}
 
 	for _, tag := range tags {
-		res := db.Create(&tag)
+		res := db.Clauses(clause.OnConflict{DoNothing: true}).Create(&tag)
 		if res.Error != nil {
 			log.Fatalf("failed to create tags: %v", err)
 		}

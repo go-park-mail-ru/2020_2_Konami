@@ -332,3 +332,37 @@ func (h ProfileGormRepo) GetCredentials(login string) (int, string, error) {
 	}
 	return obj.Id, obj.PwdHash, nil
 }
+
+func (h *ProfileGormRepo) GetLabel(userId int) (models.ProfileLabel, error) {
+	var p Profile
+	db := h.db.
+		Where("id = ?", userId).
+		First(&p)
+	err := db.Error
+	if err != nil {
+		return models.ProfileLabel{}, err
+	}
+	return models.ProfileLabel{
+		Id:     p.Id,
+		Name:   p.Name,
+		ImgSrc: p.ImgSrc,
+	}, nil
+}
+
+func (h *ProfileGormRepo) GetSubscriptions(userId int) (tagIds []int, err error) {
+	var userProfile Profile
+	db := h.db.
+		Where("id = ?", userId).
+		Preload("MeetingTags").
+		First(&userProfile)
+	err = db.Error
+	if err != nil {
+		return nil, err
+	}
+	// Tags to which user is subscribed
+	tagIds = make([]int, len(userProfile.MeetingTags))
+	for i, t := range userProfile.MeetingTags {
+		tagIds[i] = t.Id
+	}
+	return tagIds, nil
+}

@@ -17,8 +17,8 @@ func NewTagGormRepo(db *gorm.DB) tag.Repository {
 }
 
 type Tag struct {
-	Id   int `gorm:"primaryKey;autoIncrement;"`
-	Name string
+	Id   int    `gorm:"primaryKey;autoIncrement;"`
+	Name string `gorm:"unique;"`
 }
 
 func (t *Tag) TableName() string {

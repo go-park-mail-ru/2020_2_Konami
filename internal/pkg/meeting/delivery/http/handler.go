@@ -31,7 +31,7 @@ func GetQueryParams(r *http.Request) meeting.FilterParams {
 	}
 	res.EndDate, err = time.Parse(layout, r.URL.Query().Get("end"))
 	if err != nil {
-		res.EndDate = time.Unix(1<<63-1, 0)
+		res.EndDate = res.StartDate.AddDate(100, 0, 0)
 	}
 	res.PrevId, err = strconv.Atoi(r.URL.Query().Get("prevId"))
 	if err != nil {
@@ -226,15 +226,15 @@ func (h *MeetingHandler) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *MeetingHandler) GetSearchMeetings(w http.ResponseWriter, r *http.Request) {
+func (h *MeetingHandler) SearchMeetings(w http.ResponseWriter, r *http.Request) {
 	params := GetQueryParams(r)
-	meetName := r.URL.Query().Get("meetName")
-	if meetName == "" {
+	searchQuery := r.URL.Query().Get("query")
+	if searchQuery == "" {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
 	}
 	var meets []models.Meeting
-	meets, err := h.MeetingUC.SearchMeetings(params, meetName)
+	meets, err := h.MeetingUC.SearchMeetings(params, searchQuery)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return

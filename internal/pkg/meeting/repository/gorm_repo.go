@@ -6,17 +6,18 @@ import (
 	"gorm.io/gorm"
 	"konami_backend/internal/pkg/meeting"
 	"konami_backend/internal/pkg/models"
-	profileRepo "konami_backend/internal/pkg/profile/repository"
+	"konami_backend/internal/pkg/profile"
 	tagRepo "konami_backend/internal/pkg/tag/repository"
 	"time"
 )
 
 type MeetingGormRepo struct {
-	db *gorm.DB
+	db       *gorm.DB
+	profRepo profile.Repository
 }
 
-func NewMeetingGormRepo(db *gorm.DB) meeting.Repository {
-	return &MeetingGormRepo{db: db}
+func NewMeetingGormRepo(db *gorm.DB, profileRepo profile.Repository) meeting.Repository {
+	return &MeetingGormRepo{db: db, profRepo: profileRepo}
 }
 
 type Meeting struct {
@@ -141,7 +142,14 @@ func (h *MeetingGormRepo) ToMeetingDetails(obj Meeting, userId int) (models.Meet
 		m.Reg = true
 	}
 	var err error
-	m.Registrations, err = h.GetRegistrations(obj)
+	m.Registrations = make([]*models.ProfileLabel, len(obj.Regs))
+	for i, reg := range obj.Regs {
+		label, err := h.profRepo.GetLabel(reg.UserId)
+		if err != nil {
+			return models.MeetingDetails{}, err
+		}
+		m.Registrations[i] = &label
+	}
 	return m, err
 }
 
@@ -151,26 +159,6 @@ func (h *MeetingGormRepo) ToMeetingList(meetings []Meeting, userId int) ([]model
 		result[i] = h.ToMeeting(el, userId)
 	}
 	return result, nil
-}
-
-func (h *MeetingGormRepo) GetRegistrations(m Meeting) ([]*models.ProfileLabel, error) {
-	var p profileRepo.Profile
-	res := make([]*models.ProfileLabel, len(m.Regs))
-	for i, reg := range m.Regs {
-		db := h.db.
-			Where("id = ?", reg.UserId).
-			First(&p)
-		err := db.Error
-		if err != nil {
-			return nil, err
-		}
-		res[i] = &models.ProfileLabel{
-			Id:     p.Id,
-			Name:   p.Name,
-			ImgSrc: p.ImgSrc,
-		}
-	}
-	return res, nil
 }
 
 func (h *MeetingGormRepo) LikeExists(meetId int, userId int) bool {
@@ -297,11 +285,13 @@ func (h *MeetingGormRepo) RemoveReg(meetId int, userId int) error {
 }
 
 func (h *MeetingGormRepo) GetQuery(dest *[]Meeting, params meeting.FilterParams) *gorm.DB {
-	return h.db.Find(dest).
+	return h.db.
 		Where("Id > ?", params.PrevId).
-		Where("StartDate >= ? ", params.StartDate).
-		Where("EndDate <= ?", params.EndDate).
-		Limit(params.CountLimit)
+		Where("Start_Date >= ?::date ", params.StartDate.Format("2006-01-02")).
+		Where("End_Date <= ?::date", params.EndDate.Format("2006-01-02")).
+		Preload("Tags").
+		Preload("Regs").
+		Limit(params.CountLimit).Find(dest)
 }
 
 func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
@@ -314,7 +304,12 @@ func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return m.Id, nil
+	l := Registration{
+		MeetingId: m.Id,
+		UserId:    m.AuthorId,
+	}
+	db = h.db.Create(&l)
+	return m.Id, db.Error
 }
 
 func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (models.MeetingDetails, error) {
@@ -323,9 +318,9 @@ func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (mo
 	}
 	var m Meeting
 	db := h.db.
+		Where("id = ?", meetingId).
 		Preload("Tags").
 		Preload("Regs").
-		Where("id = ?", meetingId).
 		First(&m)
 	err := db.Error
 	if err != nil {
@@ -380,18 +375,18 @@ func (h *MeetingGormRepo) GetTopMeetings(params meeting.FilterParams) ([]models.
 
 func (h *MeetingGormRepo) FilterLiked(params meeting.FilterParams) ([]models.Meeting, error) {
 	var likes []Like
-	db := h.db.Find(&likes).
-		Where("UserId = ?", params.UserId).
-		Where("MeetingId > ?", params.PrevId).
-		Order("MeetingId ASC").
-		Limit(params.CountLimit)
+	db := h.db.
+		Where("User_Id = ?", params.UserId).
+		Where("Meeting_Id > ?", params.PrevId).
+		Order("Meeting_Id ASC").
+		Limit(params.CountLimit).Find(&likes)
 
 	if db.Error != nil {
 		return nil, db.Error
 	}
 	result := make([]models.Meeting, len(likes))
-	m := Meeting{}
 	for i, el := range likes {
+		var m Meeting
 		db = h.db.
 			Where("id = ?", el.MeetingId).
 			First(&m)
@@ -405,20 +400,22 @@ func (h *MeetingGormRepo) FilterLiked(params meeting.FilterParams) ([]models.Mee
 
 func (h *MeetingGormRepo) FilterRegistered(params meeting.FilterParams) ([]models.Meeting, error) {
 	var regs []Registration
-	db := h.db.Find(&regs).
-		Where("UserId = ?", params.UserId).
-		Where("MeetingId > ?", params.PrevId).
-		Order("MeetingId ASC").
-		Limit(params.CountLimit)
+	db := h.db.
+		Where("User_Id = ?", params.UserId).
+		Where("Meeting_Id > ?", params.PrevId).
+		Order("Meeting_Id ASC").
+		Limit(params.CountLimit).Find(&regs)
 
 	if db.Error != nil {
 		return nil, db.Error
 	}
 	result := make([]models.Meeting, len(regs))
-	m := Meeting{}
 	for i, el := range regs {
+		m := Meeting{}
 		db = h.db.
 			Where("id = ?", el.MeetingId).
+			Preload("Tags").
+			Preload("Regs").
 			First(&m)
 		if db.Error != nil {
 			return nil, db.Error
@@ -431,15 +428,18 @@ func (h *MeetingGormRepo) FilterRegistered(params meeting.FilterParams) ([]model
 func (h *MeetingGormRepo) ExtractMeetingsFromRows(params meeting.FilterParams, rows *sql.Rows) ([]Meeting, error) {
 	meetings := []Meeting{}
 	total := 0
-	var meetBuf Meeting
 	var meetId int
 	var err error
 	for err == nil && rows.Next() && total < params.CountLimit {
+		var meetBuf Meeting
 		err = rows.Scan(&meetId)
 		db := h.db.
 			Where("id = ?", meetId).
+			Preload("Tags").
+			Preload("Regs").
 			First(&meetBuf)
-		if db.Error == nil && (meetBuf.StartDate.Before(params.StartDate) || meetBuf.EndDate.After(params.EndDate)) {
+		// Meetings now running are also displayed (hence EndDate.Before(params.StartDate))
+		if db.Error == nil && (meetBuf.EndDate.Before(params.StartDate) || meetBuf.EndDate.After(params.EndDate)) {
 			continue
 		}
 		meetings = append(meetings, meetBuf)
@@ -450,31 +450,22 @@ func (h *MeetingGormRepo) ExtractMeetingsFromRows(params meeting.FilterParams, r
 }
 
 func (h *MeetingGormRepo) FilterRecommended(params meeting.FilterParams) ([]models.Meeting, error) {
-	var userProfile profileRepo.Profile
-	db := h.db.
-		Where("id = ?", params.UserId).
-		Preload("MeetingTags").
-		First(&userProfile)
-	err := db.Error
-	if err != nil {
-		return nil, err
-	}
-	tagIds := []int{} // Tags to which user is subscribed
-	for _, tag := range userProfile.MeetingTags {
-		tagIds = append(tagIds, tag.Id)
-	}
+	tagIds, err := h.profRepo.GetSubscriptions(params.UserId)
 	// Meetings with whose tags
 	rows, err := h.db.Table("meeting_tags").
 		Where("tag_id IN ?", tagIds).
 		Where("meeting_id > ?", params.PrevId).
 		Order("meeting_id ASC").
-		Select("meeting_id").Rows()
+		Distinct("meeting_id").Rows()
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 	meetings, err := h.ExtractMeetingsFromRows(params, rows)
-	if err == nil {
-		return h.ToMeetingList(meetings, params.UserId)
+	if err != nil {
+		return nil, err
 	}
-	return nil, err
+	return h.ToMeetingList(meetings, params.UserId)
 }
 
 func (h *MeetingGormRepo) FilterTagged(params meeting.FilterParams, tagId int) ([]models.Meeting, error) {
@@ -482,7 +473,10 @@ func (h *MeetingGormRepo) FilterTagged(params meeting.FilterParams, tagId int) (
 		Where("tag_id = ?", tagId).
 		Where("meeting_id > ?", params.PrevId).
 		Order("meeting_id ASC").
-		Select("meeting_id").Rows()
+		Distinct("meeting_id").Rows()
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 	meetings, err := h.ExtractMeetingsFromRows(params, rows)
 	if err == nil {
@@ -507,8 +501,12 @@ func (h *MeetingGormRepo) FilterSimilar(params meeting.FilterParams, meetingId i
 	rows, err := h.db.Table("meeting_tags").
 		Where("tag_id IN ?", tagIds).
 		Where("meeting_id > ?", params.PrevId).
+		Where("meeting_id <> ?", meetingId).
 		Order("meeting_id ASC").
-		Select("meeting_id").Rows()
+		Distinct("meeting_id").Rows()
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 	meetings, err := h.ExtractMeetingsFromRows(params, rows)
 	if err == nil {
@@ -517,12 +515,15 @@ func (h *MeetingGormRepo) FilterSimilar(params meeting.FilterParams, meetingId i
 	return nil, err
 }
 
-func (h *MeetingGormRepo) SearchMeetings(params meeting.FilterParams, meetingName string) ([]models.Meeting, error) {
+func (h *MeetingGormRepo) SearchMeetings(params meeting.FilterParams, searchQuery string) ([]models.Meeting, error) {
 	var res []Meeting
-	err := h.db.Table("meetings").
-		Where("title @@ to_tsquery(?)", meetingName).
-		Or("text @@ to_tsquery(?)", meetingName).
-		Find(&res).Error
+	err := h.db.Table("meetings").Where(`
+(to_tsvector('russian', title) || to_tsvector('english', title) ||
+to_tsvector('russian', text) || to_tsvector('english', text)|| 
+to_tsvector('russian', city) || to_tsvector('english', city)
+) @@ 
+(plainto_tsquery('russian', ?) || plainto_tsquery('english', ?))`,
+		searchQuery, searchQuery).Find(&res).Error
 
 	if err != nil {
 		return nil, err

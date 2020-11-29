@@ -14,4 +14,6 @@ type Repository interface {
 	EditProfilePic(userId int, imgSrc string) error
 	Create(p models.Profile) (userId int, err error)
 	GetCredentials(login string) (userId int, pwdHash string, err error)
+	GetLabel(userId int) (models.ProfileLabel, error)
+	GetSubscriptions(userId int) (tagIds []int, err error)
 }
