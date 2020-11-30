@@ -8,6 +8,7 @@ import (
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
 	tagRepo "konami_backend/internal/pkg/tag/repository"
+	"regexp"
 	"time"
 )
 
@@ -531,13 +532,15 @@ func (h *MeetingGormRepo) FilterSimilar(params meeting.FilterParams, meetingId i
 func (h *MeetingGormRepo) SearchMeetings(params meeting.FilterParams,
 	searchQuery string, limit int) ([]models.Meeting, error) {
 	var res []Meeting
+	space := regexp.MustCompile(`\s+`)
+	searchQuery = space.ReplaceAllString(searchQuery, ":* & ") + ":*"
 	db := h.db.Table("meetings").Where(`
 (setweight(to_tsvector('russian', title), 'A') || setweight(to_tsvector('english', title), 'A') ||
 setweight(to_tsvector('russian', text), 'B') || setweight(to_tsvector('english', text), 'B') || 
 setweight(to_tsvector('russian', city), 'C') || setweight(to_tsvector('english', city), 'C') ||
 setweight(to_tsvector('russian', address), 'D') || setweight(to_tsvector('english', address), 'D')
 ) @@ 
-(plainto_tsquery('russian', ?) || plainto_tsquery('english', ?))`, searchQuery, searchQuery)
+(to_tsquery('russian', ?) || to_tsquery('english', ?))`, searchQuery, searchQuery)
 	if limit > 0 {
 		db = db.Limit(limit)
 	}

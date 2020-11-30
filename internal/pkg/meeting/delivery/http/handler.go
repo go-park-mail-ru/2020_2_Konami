@@ -10,6 +10,7 @@ import (
 	hu "konami_backend/internal/pkg/utils/http_utils"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -228,7 +229,7 @@ func (h *MeetingHandler) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 
 func (h *MeetingHandler) SearchMeetings(w http.ResponseWriter, r *http.Request) {
 	params := GetQueryParams(r)
-	searchQuery := r.URL.Query().Get("query")
+	searchQuery := strings.TrimSpace(r.URL.Query().Get("query"))
 	if searchQuery == "" {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
