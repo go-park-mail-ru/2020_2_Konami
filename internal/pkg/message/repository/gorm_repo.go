@@ -18,7 +18,7 @@ func NewMeetingGormRepo(db *gorm.DB) message.Repository {
 type Message struct {
 	Id        int `gorm:"primaryKey;autoIncrement;"`
 	AuthorId  int
-	MeetingId string
+	MeetingId int
 	Text      string
 	Timestamp time.Time
 }
@@ -66,7 +66,7 @@ func (h *MessageGormRepo) SaveMessage(message models.Message) (int, error) {
 func (h *MessageGormRepo) GetMessages(meetingId int) ([]models.Message, error) {
 	var messages []Message
 	bd := h.db.
-		Where("MeetingId = ?", meetingId).
+		Where("Meeting_Id = ?", meetingId).
 		Find(&messages)
 	err := bd.Error
 	if err != nil {
