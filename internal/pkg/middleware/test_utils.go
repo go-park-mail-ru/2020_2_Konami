@@ -7,7 +7,7 @@ import (
 
 type RouteArgs struct {
 	Key   string
-	Value string
+	Value interface{}
 }
 
 func SetMuxVars(next http.HandlerFunc, args []RouteArgs) http.HandlerFunc {
