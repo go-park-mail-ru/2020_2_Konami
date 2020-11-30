@@ -86,11 +86,7 @@ func InitDelivery(db *gorm.DB, rconn *redis.Pool, log *loggerPkg.Logger, maxReqS
 		SessionUC: sessionUC,
 		ProfileUC: profileUC,
 	}
-	msgDelivery := messageDeliveryPkg.MessageHandler{
-		MessageUC:  msgUC,
-		Log:        log,
-		MaxReqSize: maxReqSize,
-	}
+	msgDelivery := messageDeliveryPkg.NewMessageHandler(msgUC, log, maxReqSize)
 	authM := middleware.NewAuthMiddleware(profileUC, sessionUC)
 	csrfM := middleware.NewCsrfMiddleware(csrfUC, log)
 	logM := middleware.NewAccessLogMiddleware(log)
@@ -109,6 +105,7 @@ func InitRouter(
 	panicM middleware.PanicMiddleware) http.Handler {
 
 	r := mux.NewRouter()
+	r.HandleFunc("/api/ws", message.Upgrade)
 	rApi := mux.NewRouter()
 	r.PathPrefix("/api/").Handler(http.StripPrefix("/api", rApi))
 	rApi.HandleFunc("/people", profile.GetPeople).Methods("GET")
@@ -136,14 +133,13 @@ func InitRouter(
 
 	rApi.HandleFunc("/messages", message.GetMessages).Methods("GET")
 	rApi.HandleFunc("/message", message.SendMessage).Methods("POST")
-	rApi.HandleFunc("/ws", message.Upgrade)
 	go message.ServeWS()
 
 	r.Use(panicM.PanicRecovery)
 	r.Use(middleware.HeadersMiddleware)
-	r.Use(logM.Log)
-	r.Use(authM.Auth)
-	r.Use(csrfM.CSRFCheck)
+	rApi.Use(logM.Log)
+	rApi.Use(authM.Auth)
+	rApi.Use(csrfM.CSRFCheck)
 	return r
 }
 
