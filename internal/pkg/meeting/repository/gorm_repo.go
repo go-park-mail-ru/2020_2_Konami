@@ -284,14 +284,14 @@ func (h *MeetingGormRepo) RemoveReg(meetId int, userId int) error {
 	return db.Error
 }
 
-func (h *MeetingGormRepo) GetQuery(dest *[]Meeting, params meeting.FilterParams) *gorm.DB {
+func (h *MeetingGormRepo) FilterQuery(params meeting.FilterParams) *gorm.DB {
 	return h.db.
 		Where("Id > ?", params.PrevId).
 		Where("Start_Date >= ?::date ", params.StartDate.Format("2006-01-02")).
 		Where("End_Date <= ?::date", params.EndDate.Format("2006-01-02")).
 		Preload("Tags").
 		Preload("Regs").
-		Limit(params.CountLimit).Find(dest)
+		Limit(params.CountLimit)
 }
 
 func (h *MeetingGormRepo) CreateMeeting(data models.Meeting) (int, error) {
@@ -355,7 +355,7 @@ func (h *MeetingGormRepo) UpdateMeeting(userId int, update models.MeetingUpdate)
 
 func (h *MeetingGormRepo) GetNextMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
 	var meetings []Meeting
-	db := h.GetQuery(&meetings, params).Order("StartDate ASC")
+	db := h.FilterQuery(params).Order("Start_Date ASC").Find(&meetings)
 	err := db.Error
 	if err != nil {
 		return []models.Meeting{}, err
@@ -365,7 +365,7 @@ func (h *MeetingGormRepo) GetNextMeetings(params meeting.FilterParams) ([]models
 
 func (h *MeetingGormRepo) GetTopMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
 	var meetings []Meeting
-	db := h.GetQuery(&meetings, params).Order("LikesCount DESC")
+	db := h.FilterQuery(params).Order("Likes_Count DESC").Find(&meetings)
 	err := db.Error
 	if err != nil {
 		return []models.Meeting{}, err
@@ -379,21 +379,29 @@ func (h *MeetingGormRepo) FilterLiked(params meeting.FilterParams) ([]models.Mee
 		Where("User_Id = ?", params.UserId).
 		Where("Meeting_Id > ?", params.PrevId).
 		Order("Meeting_Id ASC").
-		Limit(params.CountLimit).Find(&likes)
+		Find(&likes)
 
 	if db.Error != nil {
 		return nil, db.Error
 	}
-	result := make([]models.Meeting, len(likes))
-	for i, el := range likes {
+	result := []models.Meeting{}
+	total := 0
+	for _, el := range likes {
+		if total >= params.CountLimit {
+			break
+		}
 		var m Meeting
-		db = h.db.
+		db = h.FilterQuery(params).
 			Where("id = ?", el.MeetingId).
 			First(&m)
+		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
+			continue
+		}
 		if db.Error != nil {
 			return nil, db.Error
 		}
-		result[i] = h.ToMeeting(m, params.UserId)
+		result = append(result, h.ToMeeting(m, params.UserId))
+		total += 1
 	}
 	return result, nil
 }
@@ -409,18 +417,23 @@ func (h *MeetingGormRepo) FilterRegistered(params meeting.FilterParams) ([]model
 	if db.Error != nil {
 		return nil, db.Error
 	}
-	result := make([]models.Meeting, len(regs))
-	for i, el := range regs {
-		m := Meeting{}
-		db = h.db.
+	result := []models.Meeting{}
+	total := 0
+	for _, el := range regs {
+		if total >= params.CountLimit {
+			break
+		}
+		var m Meeting
+		db = h.FilterQuery(params).
 			Where("id = ?", el.MeetingId).
-			Preload("Tags").
-			Preload("Regs").
 			First(&m)
+		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
+			continue
+		}
 		if db.Error != nil {
 			return nil, db.Error
 		}
-		result[i] = h.ToMeeting(m, params.UserId)
+		result = append(result, h.ToMeeting(m, params.UserId))
 	}
 	return result, nil
 }
