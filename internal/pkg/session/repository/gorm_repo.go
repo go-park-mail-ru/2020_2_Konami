@@ -3,7 +3,6 @@ package repository
 import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/session"
 )
 
@@ -25,6 +24,8 @@ func (s *Session) TableName() string {
 	return "sessions"
 }
 
+/*
+//COMMENT BECAUSE NOW NOT USAGE
 func ToDbObject(data models.Session) Session {
 	return Session{
 		UserId: data.UserId,
@@ -32,13 +33,14 @@ func ToDbObject(data models.Session) Session {
 	}
 }
 
+//COMMENT BECAUSE NOW NOT USAGE
 func ToModel(obj Session) models.Session {
 	return models.Session{
 		UserId: obj.UserId,
 		Token:  obj.Token,
 	}
-
 }
+*/
 
 func (h SessionGormRepo) GetUserId(token string) (int, error) {
 	var s Session
