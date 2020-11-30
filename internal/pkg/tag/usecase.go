@@ -1,3 +1,4 @@
+//go:generate mockgen -source=usecase.go -destination=./usecase_mock.go -package=tag
 package tag
 
 import (
