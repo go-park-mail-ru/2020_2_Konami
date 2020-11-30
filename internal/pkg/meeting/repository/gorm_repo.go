@@ -533,7 +533,9 @@ func (h *MeetingGormRepo) SearchMeetings(params meeting.FilterParams,
 	searchQuery string, limit int) ([]models.Meeting, error) {
 	var res []Meeting
 	space := regexp.MustCompile(`\s+`)
+	nonWord := regexp.MustCompile(`([!$()*+.:<=>?[\\\]^{|}-])`)
 	searchQuery = space.ReplaceAllString(searchQuery, ":* & ") + ":*"
+	searchQuery = nonWord.ReplaceAllString(searchQuery, "\\$1")
 	db := h.db.Table("meetings").Where(`
 (setweight(to_tsvector('russian', title), 'A') || setweight(to_tsvector('english', title), 'A') ||
 setweight(to_tsvector('russian', text), 'B') || setweight(to_tsvector('english', text), 'B') || 
