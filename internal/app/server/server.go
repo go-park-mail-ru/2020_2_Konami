@@ -1,8 +1,6 @@
 package server
 
 import (
-	"context"
-	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
@@ -10,9 +8,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	csrfDeliveryPkg "konami_backend/internal/pkg/csrf/delivery/http"
-	csrfRepoPkg "konami_backend/internal/pkg/csrf/repository"
-	csrfUseCasePkg "konami_backend/internal/pkg/csrf/usecase"
 	meetingDeliveryPkg "konami_backend/internal/pkg/meeting/delivery/http"
 	meetingRepoPkg "konami_backend/internal/pkg/meeting/repository"
 	meetingUseCasePkg "konami_backend/internal/pkg/meeting/usecase"
@@ -25,77 +20,40 @@ import (
 	profileUseCasePkg "konami_backend/internal/pkg/profile/usecase"
 	tagRepoPkg "konami_backend/internal/pkg/tag/repository"
 	corsInit "konami_backend/internal/pkg/utils/cors_init"
+	"konami_backend/internal/pkg/utils/token_handler"
 	uploadsHandlerPkg "konami_backend/internal/pkg/utils/uploads_handler"
 	loggerPkg "konami_backend/logger"
 	authProto "konami_backend/proto/auth"
+	csrfProto "konami_backend/proto/csrf"
 	"log"
 	"net/http"
 	"os"
-	"time"
+	"strconv"
 )
 
-func getInterceptor(mainLogger *loggerPkg.Logger) func(
-	ctx context.Context,
-	method string,
-	req interface{},
-	reply interface{},
-	cc *grpc.ClientConn,
-	invoker grpc.UnaryInvoker,
-	opts ...grpc.CallOption,
-) error {
-	return func(
-		ctx context.Context,
-		method string,
-		req interface{},
-		reply interface{},
-		cc *grpc.ClientConn,
-		invoker grpc.UnaryInvoker,
-		opts ...grpc.CallOption,
-	) error {
-		start := time.Now()
-		err := invoker(ctx, method, req, reply, cc, opts...)
-		mainLogger.Tracef("call=%v req=%#v reply=%#v time=%v err=%v",
-			method, req, reply, time.Since(start), err)
-		return err
-	}
-}
-
-func InitDelivery(db *gorm.DB, rconn *redis.Pool, log *loggerPkg.Logger, maxReqSize int64,
-	csrfSecret string, csrfExpire int64, authClient authProto.AuthCheckerClient,
+func InitDelivery(db *gorm.DB, log *loggerPkg.Logger, maxReqSize int64,
+	authClient authProto.AuthCheckerClient,
+	csrfClient csrfProto.CsrfDispatcherClient,
 	uploadsDir, meetPicsDir, userPicsDir, defMeetPic, defUserPic string) (
-
-	csrfDeliveryPkg.CSRFHandler,
 	meetingDeliveryPkg.MeetingHandler,
 	profileDeliveryPkg.ProfileHandler,
 	messageDeliveryPkg.MessageHandler,
+	token_handler.TokenHandler,
 	middleware.AuthMiddleware,
 	middleware.CSRFMiddleware,
 	middleware.AccessLogMiddleware,
 	error,
 ) {
-	csrfRepo := csrfRepoPkg.NewRedisTokenManager(rconn)
 	profileRepo := profileRepoPkg.NewProfileGormRepo(db)
 	meetingRepo := meetingRepoPkg.NewMeetingGormRepo(db, profileRepo)
 	tagRepo := tagRepoPkg.NewTagGormRepo(db)
 	msgRepo := messageRepoPkg.NewMeetingGormRepo(db)
 	uploadsHandler := uploadsHandlerPkg.NewUploadsHandler(uploadsDir)
-	csrfUC, err := csrfUseCasePkg.NewCsrfUseCase(csrfSecret, csrfExpire, csrfRepo)
-	if err != nil {
-		log.Error(err)
-		return csrfDeliveryPkg.CSRFHandler{}, meetingDeliveryPkg.MeetingHandler{},
-			profileDeliveryPkg.ProfileHandler{},
-			messageDeliveryPkg.MessageHandler{}, middleware.AuthMiddleware{},
-			middleware.CSRFMiddleware{}, middleware.AccessLogMiddleware{}, err
-	}
 	meetingUC := meetingUseCasePkg.NewMeetingUseCase(
 		meetingRepo, uploadsHandler, tagRepo, meetPicsDir, defMeetPic)
 	profileUC := profileUseCasePkg.NewProfileUseCase(
 		profileRepo, uploadsHandler, tagRepo, userPicsDir, defUserPic)
 	msgUC := messageUseCasePkg.NewMessageUseCase(msgRepo)
-	csrfDelivery := csrfDeliveryPkg.CSRFHandler{
-		CsrfUC: csrfUC,
-		Log:    log,
-	}
 	meetingDelivery := meetingDeliveryPkg.MeetingHandler{
 		MeetingUC:  meetingUC,
 		MaxReqSize: maxReqSize,
@@ -105,18 +63,19 @@ func InitDelivery(db *gorm.DB, rconn *redis.Pool, log *loggerPkg.Logger, maxReqS
 		AuthClient: authClient,
 		MaxReqSize: maxReqSize,
 	}
+	tokenHandler := token_handler.TokenHandler{CsrfClient: csrfClient, Log: log}
 	msgDelivery := messageDeliveryPkg.NewMessageHandler(msgUC, log, maxReqSize)
 	authM := middleware.NewAuthMiddleware(profileUC, authClient)
-	csrfM := middleware.NewCsrfMiddleware(csrfUC, log)
+	csrfM := middleware.NewCsrfMiddleware(csrfClient, log)
 	logM := middleware.NewAccessLogMiddleware(log)
-	return csrfDelivery, meetingDelivery, profileDelivery, msgDelivery, authM, csrfM, logM, nil
+	return meetingDelivery, profileDelivery, msgDelivery, tokenHandler, authM, csrfM, logM, nil
 }
 
 func InitRouter(
-	csrf csrfDeliveryPkg.CSRFHandler,
 	meeting meetingDeliveryPkg.MeetingHandler,
 	profile profileDeliveryPkg.ProfileHandler,
 	message messageDeliveryPkg.MessageHandler,
+	token token_handler.TokenHandler,
 	authM middleware.AuthMiddleware,
 	csrfM middleware.CSRFMiddleware,
 	logM middleware.AccessLogMiddleware,
@@ -130,9 +89,9 @@ func InitRouter(
 	rApi.HandleFunc("/user", profile.GetUser).Methods("GET")
 	rApi.HandleFunc("/signup", profile.SignUp).Methods("POST")
 	rApi.HandleFunc("/login", profile.LogIn).Methods("POST")
-	rApi.HandleFunc("/csrf", csrf.GetCSRF).Methods("GET")
-	rApi.HandleFunc("/meeting", meeting.GetMeeting).Methods("GET")
+	rApi.HandleFunc("/csrf", token.GetCSRF).Methods("GET")
 
+	rApi.HandleFunc("/meeting", meeting.GetMeeting).Methods("GET")
 	rApi.HandleFunc("/meetings", meeting.GetMeetingsList).Methods("GET")
 	rApi.HandleFunc("/meetings/my", meeting.GetUserMeetingsList).Methods("GET")
 	rApi.HandleFunc("/meetings/favorite", meeting.GetFavMeetingsList).Methods("GET")
@@ -178,36 +137,14 @@ func Start() {
 	if err := dbdb.Ping(); err != nil {
 		logger.Fatalf("failed to launch db: %v", err)
 	}
-	redisAddr := os.Getenv("REDIS_CONN")
-	if redisAddr == "" {
-		redisAddr = "redis://user:@localhost:6379/0"
-	}
-	redisConn := &redis.Pool{
-		MaxIdle:   80,
-		MaxActive: 12000,
-		Wait:      true,
-		Dial: func() (redis.Conn, error) {
-			conn, err := redis.DialURL(redisAddr)
-			if err != nil {
-				logger.Fatalf("failed to launch redis pool: %v", err)
-			}
-			return conn, err
-		},
-	}
-	defer redisConn.Close()
 
-	_, err = redisConn.Get().Do("PING")
-	if err != nil {
-		logger.Fatalf("redis connection failed")
-	}
 	authAddr := os.Getenv("AUTH_ADDR")
 	if authAddr == "" {
 		authAddr = "127.0.0.1:8002"
 	}
-
 	authConn, err := grpc.Dial(
 		authAddr,
-		grpc.WithUnaryInterceptor(getInterceptor(logger)),
+		grpc.WithUnaryInterceptor(loggerPkg.GetGRPCInterceptor(logger)),
 		grpc.WithInsecure(),
 	)
 	if err != nil {
@@ -216,16 +153,28 @@ func Start() {
 	defer authConn.Close()
 	authClient := authProto.NewAuthCheckerClient(authConn)
 
-	csrfSecret := os.Getenv("CSRF_SECRET")
-	if csrfSecret == "" {
-		logger.Fatalf("csrf secret not provided")
+	csrfAddr := os.Getenv("CSRF_ADDR")
+	if csrfAddr == "" {
+		csrfAddr = "127.0.0.1:8003"
+	}
+	csrfConn, err := grpc.Dial(
+		csrfAddr,
+		grpc.WithUnaryInterceptor(loggerPkg.GetGRPCInterceptor(logger)),
+		grpc.WithInsecure(),
+	)
+	if err != nil {
+		log.Fatalf("unable to connect to grpc")
+	}
+	defer csrfConn.Close()
+	csrfClient := csrfProto.NewCsrfDispatcherClient(csrfConn)
+
+	maxReqSize, err := strconv.ParseInt(os.Getenv("MAX_REQ_SIZE"), 10, 64)
+	if err != nil || maxReqSize <= 0 {
+		maxReqSize = 10 * 1024 * 1024
 	}
 
-	var maxRecSize int64 = 10 * 1024 * 1024
-	var csrfDuration int64 = 3600
-	csrf, meeting, profile, msg, authM, csrfM, logM, err := InitDelivery(
-		db, redisConn, logger, maxRecSize,
-		os.Getenv("CSRF_SECRET"), csrfDuration, authClient,
+	meeting, profile, msg, token, authM, csrfM, logM, err := InitDelivery(
+		db, logger, maxReqSize, authClient, csrfClient,
 		"uploads", "meetingpics", "userpics",
 		"assets/paris.jpg", "assets/empty-avatar.jpeg")
 	if err != nil {
@@ -234,7 +183,7 @@ func Start() {
 	}
 
 	panicM := middleware.NewPanicMiddleware(logger)
-	r := InitRouter(csrf, meeting, profile, msg, authM, csrfM, logM, panicM)
+	r := InitRouter(meeting, profile, msg, token, authM, csrfM, logM, panicM)
 	c := corsInit.InitCors()
 	h := c.Handler(r)
 

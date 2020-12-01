@@ -3,7 +3,7 @@ package repository
 import (
 	"errors"
 	"github.com/gomodule/redigo/redis"
-	"konami_backend/internal/pkg/csrf"
+	"konami_backend/csrf/pkg/csrf"
 )
 
 type TokenManager struct {

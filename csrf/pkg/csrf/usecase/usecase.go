@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"konami_backend/internal/pkg/csrf"
+	"konami_backend/csrf/pkg/csrf"
 	"time"
 )
 

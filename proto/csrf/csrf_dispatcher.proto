@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package csrf;
+
+message CsrfToken {
+  string sid = 1;
+  string token = 2;
+}
+
+message CsrfData {
+  string sid = 1;
+  int64 timeStamp = 2;
+}
+
+message IsValid {
+      bool value = 1;
+}
+
+service CsrfDispatcher {
+  rpc Create (CsrfData) returns (CsrfToken) {}
+  rpc Check (CsrfToken) returns (IsValid) {}
+}
+

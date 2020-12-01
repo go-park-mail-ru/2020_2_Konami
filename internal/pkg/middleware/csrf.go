@@ -2,22 +2,22 @@ package middleware
 
 import (
 	"context"
-	"konami_backend/internal/pkg/csrf"
 	"konami_backend/logger"
+	"konami_backend/proto/csrf"
 	"net/http"
 )
 
 type CSRFMiddleware struct {
-	CsrfUC csrf.UseCase
-	log    *logger.Logger
+	CsrfClient csrf.CsrfDispatcherClient
+	log        *logger.Logger
 }
 
 const CSRFValid = "CSRFValid"
 
-func NewCsrfMiddleware(csrfUC csrf.UseCase, log *logger.Logger) CSRFMiddleware {
+func NewCsrfMiddleware(csrfClient csrf.CsrfDispatcherClient, log *logger.Logger) CSRFMiddleware {
 	return CSRFMiddleware{
-		CsrfUC: csrfUC,
-		log:    log,
+		CsrfClient: csrfClient,
+		log:        log,
 	}
 }
 
@@ -31,8 +31,13 @@ func (m *CSRFMiddleware) CSRFCheck(next http.Handler) http.Handler {
 			return
 		}
 		CSRFToken := r.Header.Get("Csrf-Token")
-		ok, err := m.CsrfUC.Check(authTok, CSRFToken)
-		if err != nil || !ok {
+		if CSRFToken == "" {
+			ctx = context.WithValue(ctx, CSRFValid, false)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+		isValid, err := m.CsrfClient.Check(context.Background(), &csrf.CsrfToken{Token: CSRFToken, Sid: authTok})
+		if err != nil || !isValid.Value {
 			ctx = context.WithValue(ctx, CSRFValid, false)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
