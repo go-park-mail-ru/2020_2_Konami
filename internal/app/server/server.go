@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"gorm.io/driver/postgres"
@@ -107,6 +108,8 @@ func InitRouter(
 	rApi.HandleFunc("/meeting", meeting.UpdateMeeting).Methods("PATCH")
 	rApi.HandleFunc("/user", profile.EditUser).Methods("PATCH")
 	rApi.HandleFunc("/images", profile.UploadUserPic).Methods("POST")
+
+	r.Handle("/metrics", promhttp.Handler())
 
 	rApi.HandleFunc("/messages", message.GetMessages).Methods("GET")
 	rApi.HandleFunc("/message", message.SendMessage).Methods("POST")
