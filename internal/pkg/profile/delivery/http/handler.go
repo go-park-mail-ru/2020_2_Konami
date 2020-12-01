@@ -1,19 +1,22 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	sessionPkg "konami_backend/auth/pkg/session"
 	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
-	"konami_backend/internal/pkg/session"
 	hu "konami_backend/internal/pkg/utils/http_utils"
+	"konami_backend/proto/auth"
 	"net/http"
 	"strconv"
 )
 
 type ProfileHandler struct {
 	ProfileUC  profile.UseCase
-	SessionUC  session.UseCase
+	AuthClient auth.AuthCheckerClient
 	MaxReqSize int64
 }
 
@@ -34,13 +37,64 @@ func (h *ProfileHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
 	}
-	token, err := h.SessionUC.CreateSession(userId)
+	session, err := h.AuthClient.Create(context.Background(), &auth.Session{UserId: int64(userId)})
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return
 	}
-	hu.SetAuthCookie(w, token)
+	hu.SetAuthCookie(w, session.Token)
 	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *ProfileHandler) GetUserId(w http.ResponseWriter, r *http.Request) {
+	uId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	hu.WriteJson(w, struct {
+		UserId int `json:"userId"`
+	}{uId})
+}
+
+func (h *ProfileHandler) LogIn(w http.ResponseWriter, r *http.Request) {
+	var cred models.Credentials
+	err := json.NewDecoder(r.Body).Decode(&cred)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	userId, err := h.ProfileUC.Validate(cred)
+	if errors.Is(err, profile.ErrInvalidCredentials) || errors.Is(err, profile.ErrUserNonExistent) {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest, ErrMsg: "invalid credentials"})
+		return
+	}
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	session, err := h.AuthClient.Create(context.Background(), &auth.Session{UserId: int64(userId)})
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	hu.SetAuthCookie(w, session.Token)
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (h *ProfileHandler) LogOut(w http.ResponseWriter, r *http.Request) {
+	token, ok := r.Context().Value(middleware.AuthToken).(string)
+	if !ok {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	_, err := h.AuthClient.Delete(context.Background(), &auth.SessionToken{Token: token})
+	if err != nil && err != sessionPkg.ErrInvalidToken {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	hu.RemoveAuthCookie(w, token)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *ProfileHandler) UploadUserPic(w http.ResponseWriter, r *http.Request) {

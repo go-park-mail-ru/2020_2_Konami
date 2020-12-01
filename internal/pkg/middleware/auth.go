@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"konami_backend/internal/pkg/profile"
-	"konami_backend/internal/pkg/session"
+	"konami_backend/proto/auth"
 	"net/http"
 )
 
@@ -14,14 +14,14 @@ const (
 )
 
 type AuthMiddleware struct {
-	ProfileUC profile.UseCase
-	SessionUC session.UseCase
+	ProfileUC   profile.UseCase
+	AuthChecker auth.AuthCheckerClient
 }
 
-func NewAuthMiddleware(ProfileUC profile.UseCase, SessionUC session.UseCase) AuthMiddleware {
+func NewAuthMiddleware(ProfileUC profile.UseCase, AuthChecker auth.AuthCheckerClient) AuthMiddleware {
 	return AuthMiddleware{
-		ProfileUC: ProfileUC,
-		SessionUC: SessionUC,
+		ProfileUC:   ProfileUC,
+		AuthChecker: AuthChecker,
 	}
 }
 
@@ -34,14 +34,14 @@ func (am *AuthMiddleware) Auth(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
-		uId, err := am.SessionUC.GetUserId(token.Value)
+		sess, err := am.AuthChecker.Check(context.Background(), &auth.SessionToken{Token: token.Value})
 		if err != nil {
 			ctx = context.WithValue(ctx, AuthStatus, false)
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 		ctx = context.WithValue(ctx, AuthStatus, true)
-		ctx = context.WithValue(ctx, UserID, uId)
+		ctx = context.WithValue(ctx, UserID, sess.UserId)
 		ctx = context.WithValue(ctx, AuthToken, token.Value)
 
 		next.ServeHTTP(w, r.WithContext(ctx))

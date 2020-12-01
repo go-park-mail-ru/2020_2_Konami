@@ -1,7 +1,7 @@
 package usecase
 
 import (
-	"konami_backend/internal/pkg/session"
+	"konami_backend/auth/pkg/session"
 )
 
 type SessionUseCase struct {
@@ -12,11 +12,11 @@ func NewSessionUseCase(SessionRepo session.Repository) session.UseCase {
 	return &SessionUseCase{SessionRepo: SessionRepo}
 }
 
-func (uc SessionUseCase) GetUserId(token string) (userId int, err error) {
+func (uc SessionUseCase) GetUserId(token string) (userId int64, err error) {
 	return uc.SessionRepo.GetUserId(token)
 }
 
-func (uc SessionUseCase) CreateSession(userId int) (token string, err error) {
+func (uc SessionUseCase) CreateSession(userId int64) (token string, err error) {
 	return uc.SessionRepo.CreateSession(userId)
 }
 

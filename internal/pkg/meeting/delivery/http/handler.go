@@ -6,8 +6,8 @@ import (
 	"konami_backend/internal/pkg/meeting"
 	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
-	"konami_backend/internal/pkg/session"
 	hu "konami_backend/internal/pkg/utils/http_utils"
+	"konami_backend/proto/auth"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,7 +16,7 @@ import (
 
 type MeetingHandler struct {
 	MeetingUC  meeting.UseCase
-	SessionUC  session.UseCase
+	AuthClient auth.AuthCheckerClient
 	MaxReqSize int64
 }
 
