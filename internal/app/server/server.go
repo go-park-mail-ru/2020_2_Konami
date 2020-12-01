@@ -202,7 +202,7 @@ func Start() {
 	}
 	authAddr := os.Getenv("AUTH_ADDR")
 	if authAddr == "" {
-		authAddr = "127.0.0.1:8082"
+		authAddr = "127.0.0.1:8002"
 	}
 
 	authConn, err := grpc.Dial(
@@ -219,7 +219,6 @@ func Start() {
 	csrfSecret := os.Getenv("CSRF_SECRET")
 	if csrfSecret == "" {
 		logger.Fatalf("csrf secret not provided")
-
 	}
 
 	var maxRecSize int64 = 10 * 1024 * 1024
