@@ -60,6 +60,83 @@ func (s *Suite) TestGetAllError() {
 	require.Equal(s.T(), err, s.bdError)
 }
 
+func (s *Suite) TestGetCred() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	_, _, err := s.repository.GetCredentials("qwerty")
+
+	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestGetLabel() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	_, err := s.repository.GetLabel(1)
+
+	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestGetSub() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	_, err := s.repository.GetSubscriptions(1)
+
+	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestGetLabelErr() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnError(s.bdError)
+
+	_, err := s.repository.GetLabel(1)
+
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
+}
+
+func (s *Suite) TestGetCredNo() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{}))
+
+	_, _, err := s.repository.GetCredentials("qwerty")
+
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, profile.ErrUserNonExistent)
+}
+
+func (s *Suite) TestGetCredError() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnError(s.bdError)
+
+	_, _, err := s.repository.GetCredentials("qwerty")
+
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
+}
+
+
+func (s *Suite) TestEditPhoto() {
+/*	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("UPDATE").
+		WithArgs(1,"","PICTURE","","0001-01-01 00:00:00 +0000 UTC","","","","","","","","","","",1)
+	s.mock.ExpectCommit()
+
+	err := s.repository.EditProfilePic(1, "PICTURE")
+
+	require.NoError(s.T(), err)
+*/}
+
+
 func (s *Suite) AfterTest(_, _ string) {
 	require.NoError(s.T(), s.mock.ExpectationsWereMet())
 }
@@ -69,32 +146,33 @@ func TestMeetings(t *testing.T) {
 }
 
 func (s *Suite) TestGetProfile() {
-	/* GOTCHAS
-	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "profiles" WHERE id = $1 ORDER BY "profiles"."id" LIMIT 1`)).
-		WithArgs(1337).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).
-			AddRow(1337))
-
-	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "profile_interest_tags" WHERE "profile_interest_tags"."profile_id" = $1`)).
-		WithArgs(1337).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}))
-
 	s.mock.ExpectQuery("SELECT").
-		WithArgs(sql.NullInt64{}).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}))
-
-	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "profile_meeting_tags" WHERE "profile_meeting_tags"."profile_id" = $1`)).
-		WithArgs(1337).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}))
-
-	/*s.mock.ExpectQuery("SELECT")
-	s.mock.ExpectQuery("SELECT").
-		WithArgs(1).
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
 	_, err := s.repository.GetProfile(1337)
 
 	require.NoError(s.T(), err)
-*/
 }
 
 
@@ -143,21 +221,23 @@ func (s *Suite) TestCreateProfile() {
 	s.mock.ExpectQuery("INSERT INTO").
 		WillReturnRows(sqlmock.NewRows([]string{""}).AddRow(1))
 
+	s.mock.ExpectQuery("INSERT INTO").
+		WillReturnRows(sqlmock.NewRows([]string{""}).AddRow(1))
+
+	s.mock.ExpectQuery("INSERT INTO").
+		WillReturnRows(sqlmock.NewRows([]string{""}).AddRow(1))
+
+
 	s.mock.ExpectCommit()
 
 
 	_, err := s.repository.Create(gg)
 
-	require.NoError(s.T(), err)
-*/
+	require.NoError(s.T(), err)*/
 }
 
 /*
-GetProfile(userId int) (models.Profile, error) GOTCHAS
-EditProfile(update models.Profile) error
-EditProfilePic(userId int, imgSrc string) error
-Create(p models.Profile) (userId int, err error)
-GetCredentials(login string) (userId int, pwdHash string, err error)
-GetLabel(userId int) (models.ProfileLabel, error)
-GetSubscriptions(userId int) (tagIds []int, err error)
+☨☨☨ EditProfile(update models.Profile) error
+☨☨☨ EditProfilePic(userId int, imgSrc string) error
+☨☨☨ Create(p models.Profile) (userId int, err error)
 */
