@@ -1,7 +1,7 @@
 package http
 
 import (
-	"encoding/json"
+	"bytes"
 	"github.com/gorilla/websocket"
 	"konami_backend/internal/pkg/message"
 	"konami_backend/internal/pkg/middleware"
@@ -48,7 +48,10 @@ func (h *MessageHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	msg := &models.Message{}
-	err := json.NewDecoder(http.MaxBytesReader(w, r.Body, h.MaxReqSize)).Decode(&msg)
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(http.MaxBytesReader(w, r.Body, h.MaxReqSize))
+	err := msg.UnmarshalJSON(buf.Bytes())
+
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return

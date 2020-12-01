@@ -1,7 +1,7 @@
 package http
 
 import (
-	"encoding/json"
+	"bytes"
 	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
@@ -19,7 +19,9 @@ type ProfileHandler struct {
 
 func (h *ProfileHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var creds models.Credentials
-	err := json.NewDecoder(r.Body).Decode(&creds)
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(r.Body)
+	err := creds.UnmarshalJSON(buf.Bytes())
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
@@ -108,7 +110,9 @@ func (h *ProfileHandler) EditUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	update := &models.ProfileUpdate{}
-	err := json.NewDecoder(r.Body).Decode(&update)
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(r.Body)
+	err := update.UnmarshalJSON(buf.Bytes())
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return

@@ -1,7 +1,7 @@
 package http
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"konami_backend/internal/pkg/meeting"
 	"konami_backend/internal/pkg/middleware"
@@ -166,7 +166,9 @@ func (h *MeetingHandler) CreateMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mData := &models.MeetingData{}
-	err := json.NewDecoder(http.MaxBytesReader(w, r.Body, h.MaxReqSize)).Decode(&mData)
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(http.MaxBytesReader(w, r.Body, h.MaxReqSize))
+	err := mData.UnmarshalJSON(buf.Bytes())
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
@@ -211,7 +213,10 @@ func (h *MeetingHandler) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	update := &models.MeetingUpdate{}
-	err := json.NewDecoder(r.Body).Decode(&update)
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(r.Body)
+	err := update.UnmarshalJSON(buf.Bytes())
+
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return

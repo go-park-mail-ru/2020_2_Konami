@@ -1,5 +1,7 @@
+//go:generate easyjson profile_update.go
 package models
 
+//easyjson:json
 type ProfileUpdate struct {
 	Name        *string  `json:"name"`
 	Gender      *string  `json:"gender"`

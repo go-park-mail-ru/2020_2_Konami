@@ -1,3 +1,4 @@
+//go:generate easyjson usecase.go
 package usecase
 
 import (
@@ -5,7 +6,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"io"
 	"konami_backend/internal/pkg/csrf"
@@ -18,6 +18,7 @@ type CsrfUseCase struct {
 	CsrfRepo   csrf.Repository
 }
 
+//easyjson:json
 type TokenMeta struct {
 	SessionID string
 	TimeStamp int64
@@ -47,7 +48,8 @@ func (tk *CsrfUseCase) Create(sid string, timeStamp int64) (string, error) {
 		return "", err
 	}
 	td := &TokenMeta{SessionID: sid, TimeStamp: timeStamp}
-	data, _ := json.Marshal(td)
+	data, _ := td.MarshalJSON()
+	//data, _ := json.Marshal(td)
 	ciphertext := gcm.Seal(nil, nonce, data, nil)
 
 	res := append([]byte(nil), nonce...)
@@ -83,7 +85,9 @@ func (tk *CsrfUseCase) Check(sid string, inputToken string) (bool, error) {
 	}
 
 	td := TokenMeta{}
-	err = json.Unmarshal(plaintext, &td)
+	err = td.UnmarshalJSON(plaintext)
+	//err = json.Unmarshal(plaintext, &td)
+
 	if err != nil {
 		return false, err
 	}

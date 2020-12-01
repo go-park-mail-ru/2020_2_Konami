@@ -1,5 +1,7 @@
+//go:generate easyjson message.go
 package models
 
+//easyjson:json
 type Message struct {
 	Id        int    `json:"id"`
 	AuthorId  int    `json:"authorId"`

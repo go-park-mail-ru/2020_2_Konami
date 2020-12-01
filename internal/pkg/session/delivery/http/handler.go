@@ -1,7 +1,7 @@
 package http
 
 import (
-	"encoding/json"
+	"bytes"
 	"errors"
 	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
@@ -29,7 +29,9 @@ func (h *SessionHandler) GetUserId(w http.ResponseWriter, r *http.Request) {
 
 func (h *SessionHandler) LogIn(w http.ResponseWriter, r *http.Request) {
 	var cred models.Credentials
-	err := json.NewDecoder(r.Body).Decode(&cred)
+	buf := new(bytes.Buffer)
+	_, _ = buf.ReadFrom(r.Body)
+	err := cred.UnmarshalJSON(buf.Bytes())
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return

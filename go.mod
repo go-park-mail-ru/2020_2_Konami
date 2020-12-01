@@ -15,6 +15,7 @@ require (
 	github.com/jackc/pgx/v4 v4.9.2 // indirect
 	github.com/jinzhu/gorm v1.9.16
 	github.com/lib/pq v1.8.0
+	github.com/mailru/easyjson v0.7.6
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rs/cors v1.7.0
 	github.com/shopspring/decimal v1.2.0 // indirect
