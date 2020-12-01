@@ -10,6 +10,23 @@ type RouteArgs struct {
 	Value interface{}
 }
 
+type QueryArgs struct {
+	Key   string
+	Value string
+}
+
+func SetVars(next http.HandlerFunc, args []QueryArgs) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		for _, val := range args {
+			q.Add(val.Key, val.Value)
+
+		}
+		r.URL.RawQuery = q.Encode()
+		next(w, r)
+	}
+}
+
 func SetMuxVars(next http.HandlerFunc, args []RouteArgs) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
