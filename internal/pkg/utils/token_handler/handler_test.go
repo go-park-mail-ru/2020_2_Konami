@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/steinfletcher/apitest"
-	"konami_backend/internal/pkg/csrf"
+	"konami_backend/csrf/pkg/csrf"
 	"konami_backend/internal/pkg/middleware"
 	"konami_backend/logger"
 	"net/http"
@@ -28,7 +28,7 @@ func TestSessions(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		m := csrf.NewMockUseCase(ctrl)
+		m := csrf.NewMockCsrfDispatcherClient(ctrl)
 		testHandler.CsrfClient = m
 
 		m.EXPECT().
@@ -52,8 +52,8 @@ func TestSessions(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		m := csrf.NewMockUseCase(ctrl)
-		testHandler.CsrfUC = m
+		m := csrf.NewMockCsrfDispatcherClient(ctrl)
+		testHandler.CsrfClient = m
 
 		apitest.New("Get-BAD").
 			Handler(handler).
@@ -72,8 +72,8 @@ func TestSessions(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		m := csrf.NewMockUseCase(ctrl)
-		testHandler.CsrfUC = m
+		m := csrf.NewMockCsrfDispatcherClient(ctrl)
+		testHandler.CsrfClient = m
 
 		m.EXPECT().
 			Create("4234124", time.Now().Unix()).

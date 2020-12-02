@@ -6,7 +6,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"konami_backend/internal/pkg/csrf"
+	"konami_backend/csrf/pkg/csrf"
 	"testing"
 	"time"
 )

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"konami_backend/internal/pkg/csrf"
+	"konami_backend/csrf/pkg/csrf"
 	"testing"
 	"time"
 )
