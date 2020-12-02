@@ -59,6 +59,119 @@ func (s *Suite) TestGetSessions() {
 	require.NoError(s.T(), err)
 }
 
+func (s *Suite) TestSearchMeetErr() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	_, err := s.repository.SearchMeetings(meeting.FilterParams{
+		StartDate:  time.Time{},
+		EndDate:    time.Time{},
+		PrevId:     0,
+		CountLimit: 0,
+		UserId:     0,
+	}, "testmeet", 100)
+	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestSearchMeet() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnError(s.bdError)
+
+	_, err := s.repository.SearchMeetings(meeting.FilterParams{
+		StartDate:  time.Time{},
+		EndDate:    time.Time{},
+		PrevId:     0,
+		CountLimit: 0,
+		UserId:     0,
+	}, "testmeet", 100)
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
+}
+
+func (s *Suite) TestFilterMeet() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	_, err := s.repository.FilterTagged(meeting.FilterParams{
+		StartDate:  time.Time{},
+		EndDate:    time.Time{},
+		PrevId:     0,
+		CountLimit: 0,
+		UserId:     0,
+	}, 100)
+	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestFilterTopMeet() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	_, err := s.repository.GetTopMeetings(meeting.FilterParams{
+		StartDate:  time.Time{},
+		EndDate:    time.Time{},
+		PrevId:     0,
+		CountLimit: 0,
+		UserId:     0,
+	})
+	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestFilterReg() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	_, err := s.repository.FilterRegistered(meeting.FilterParams{
+		StartDate:  time.Time{},
+		EndDate:    time.Time{},
+		PrevId:     0,
+		CountLimit: 0,
+		UserId:     0,
+	})
+	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestFilterTopMeetErr() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnError(s.bdError)
+
+	_, err := s.repository.GetTopMeetings(meeting.FilterParams{
+		StartDate:  time.Time{},
+		EndDate:    time.Time{},
+		PrevId:     0,
+		CountLimit: 0,
+		UserId:     0,
+	})
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
+}
+
+func (s *Suite) TestFilterMeetErr() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnError(s.bdError)
+
+	_, err := s.repository.FilterTagged(meeting.FilterParams{
+		StartDate:  time.Time{},
+		EndDate:    time.Time{},
+		PrevId:     0,
+		CountLimit: 0,
+		UserId:     0,
+	}, 100)
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
+}
+
 func (s *Suite) TestGetSessionsError() {
 	s.mock.ExpectQuery("SELECT").
 		WillReturnError(s.bdError)
