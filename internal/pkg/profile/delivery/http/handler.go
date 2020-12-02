@@ -23,8 +23,10 @@ type ProfileHandler struct {
 func (h *ProfileHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var creds models.Credentials
 	buf := new(bytes.Buffer)
-	_, _ = buf.ReadFrom(r.Body)
-	err := creds.UnmarshalJSON(buf.Bytes())
+	_, err := buf.ReadFrom(r.Body)
+	if err == nil {
+		err = creds.UnmarshalJSON(buf.Bytes())
+	}
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
@@ -62,8 +64,10 @@ func (h *ProfileHandler) GetUserId(w http.ResponseWriter, r *http.Request) {
 func (h *ProfileHandler) LogIn(w http.ResponseWriter, r *http.Request) {
 	var creds models.Credentials
 	buf := new(bytes.Buffer)
-	_, _ = buf.ReadFrom(r.Body)
-	err := creds.UnmarshalJSON(buf.Bytes())
+	_, err := buf.ReadFrom(r.Body)
+	if err == nil {
+		err = creds.UnmarshalJSON(buf.Bytes())
+	}
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
@@ -167,8 +171,10 @@ func (h *ProfileHandler) EditUser(w http.ResponseWriter, r *http.Request) {
 	}
 	update := &models.ProfileUpdate{}
 	buf := new(bytes.Buffer)
-	_, _ = buf.ReadFrom(r.Body)
-	err := update.UnmarshalJSON(buf.Bytes())
+	_, err := buf.ReadFrom(r.Body)
+	if err == nil {
+		err = update.UnmarshalJSON(buf.Bytes())
+	}
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return

@@ -49,9 +49,10 @@ func (h *MessageHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 	msg := &models.Message{}
 	buf := new(bytes.Buffer)
-	_, _ = buf.ReadFrom(http.MaxBytesReader(w, r.Body, h.MaxReqSize))
-	err := msg.UnmarshalJSON(buf.Bytes())
-
+	_, err := buf.ReadFrom(http.MaxBytesReader(w, r.Body, h.MaxReqSize))
+	if err == nil {
+		err = msg.UnmarshalJSON(buf.Bytes())
+	}
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return

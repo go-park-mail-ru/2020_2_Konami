@@ -167,8 +167,10 @@ func (h *MeetingHandler) CreateMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 	mData := &models.MeetingData{}
 	buf := new(bytes.Buffer)
-	_, _ = buf.ReadFrom(http.MaxBytesReader(w, r.Body, h.MaxReqSize))
-	err := mData.UnmarshalJSON(buf.Bytes())
+	_, err := buf.ReadFrom(http.MaxBytesReader(w, r.Body, h.MaxReqSize))
+	if err == nil {
+		err = mData.UnmarshalJSON(buf.Bytes())
+	}
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
@@ -214,8 +216,10 @@ func (h *MeetingHandler) UpdateMeeting(w http.ResponseWriter, r *http.Request) {
 	}
 	update := &models.MeetingUpdate{}
 	buf := new(bytes.Buffer)
-	_, _ = buf.ReadFrom(r.Body)
-	err := update.UnmarshalJSON(buf.Bytes())
+	_, err := buf.ReadFrom(r.Body)
+	if err == nil {
+		err = update.UnmarshalJSON(buf.Bytes())
+	}
 
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
