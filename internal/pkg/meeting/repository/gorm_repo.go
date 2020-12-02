@@ -21,6 +21,9 @@ func NewMeetingGormRepo(db *gorm.DB, profileRepo profile.Repository) meeting.Rep
 	return &MeetingGormRepo{db: db, profRepo: profileRepo}
 }
 
+func NewMeetingGormRepoLite(db *gorm.DB) meeting.Repository {
+	return &MeetingGormRepo{db: db}
+}
 type Meeting struct {
 	Id         int `gorm:"primaryKey;autoIncrement;"`
 	AuthorId   int

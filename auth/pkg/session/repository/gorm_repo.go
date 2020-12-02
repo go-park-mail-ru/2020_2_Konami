@@ -38,7 +38,6 @@ func ToModel(obj Session) ModelsPkg.Session {
 		UserId: obj.UserId,
 		Token:  obj.Token,
 	}
-
 }
 
 func (h SessionGormRepo) GetUserId(token string) (int64, error) {

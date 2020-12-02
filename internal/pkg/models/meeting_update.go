@@ -1,3 +1,4 @@
+//go:generate easyjson meeting_update.go
 package models
 
 type MeetUpdateFields struct {
@@ -5,11 +6,13 @@ type MeetUpdateFields struct {
 	Like *bool `json:"isLiked"`
 }
 
+//easyjson:json
 type MeetingUpdate struct {
 	MeetId int               `json:"meetId"`
 	Fields *MeetUpdateFields `json:"fields"`
 }
 
+//easyjson:json
 type MeetingData struct {
 	Address   *string  `json:"address"`
 	City      *string  `json:"city"`
