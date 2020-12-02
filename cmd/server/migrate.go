@@ -1,7 +1,6 @@
 package main
 
-import "konami_backend/internal/app/server"
-
-func main() {
+/*func main() {
 	server.Migrate()
 }
+*/

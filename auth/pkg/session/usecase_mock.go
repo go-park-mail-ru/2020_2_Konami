@@ -48,7 +48,7 @@ func (mr *MockUseCaseMockRecorder) GetUserId(token interface{}) *gomock.Call {
 }
 
 // CreateSession mocks base method
-func (m *MockUseCase) CreateSession(userId int) (string, error) {
+func (m *MockUseCase) CreateSession(userId int64) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateSession", userId)
 	ret0, _ := ret[0].(string)

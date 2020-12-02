@@ -4,7 +4,6 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	ModelsPkg "konami_backend/auth/pkg/models"
 	"konami_backend/auth/pkg/session"
 )
 
@@ -26,6 +25,8 @@ func (s *Session) TableName() string {
 	return "sessions"
 }
 
+/*
+NOT USED NOW
 func ToDbObject(data ModelsPkg.Session) Session {
 	return Session{
 		UserId: data.UserId,
@@ -39,7 +40,7 @@ func ToModel(obj Session) ModelsPkg.Session {
 		Token:  obj.Token,
 	}
 }
-
+*/
 func (h SessionGormRepo) GetUserId(token string) (int64, error) {
 	var s Session
 	db := h.db.

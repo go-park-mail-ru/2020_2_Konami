@@ -73,7 +73,7 @@ func (s *Suite) TestCreateTagError() {
 	require.Equal(s.T(), err, s.bdError)
 }
 
-func (s *Suite) TestCreateTag() {
+func (s *Suite) TestCreateSession() {
 	// CANT TEST uuid.New().String()
 }
 
