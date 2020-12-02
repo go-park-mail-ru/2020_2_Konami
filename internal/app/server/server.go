@@ -196,18 +196,13 @@ func Start() {
 	}
 	certFile := os.Getenv("CERTFILE")
 	if certFile == "" {
-		certFile = "/etc/letsencrypt/live/okto.pw/fullchain.pem"
+		certFile = "/etc/letsencrypt/live/onmeet.ru/fullchain.pem"
 	}
 	keyFile := os.Getenv("KEYFILE")
 	if keyFile == "" {
-		keyFile = "/etc/letsencrypt/live/okto.pw/privkey.pem"
-	}
-	tlsHost := os.Getenv("TLSHOST")
-	if tlsHost == "" {
-		tlsHost = "okto.pw"
+		keyFile = "/etc/letsencrypt/live/onmeet.ru/privkey.pem"
 	}
 	tlsPort := os.Getenv("TLSPORT")
-
 	if tlsPort == "" {
 		logger.Println("Launching at HTTP port " + port)
 		err = http.ListenAndServe(":"+port, h)

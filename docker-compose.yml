@@ -1,0 +1,74 @@
+version: '3'
+networks:
+  monitor-net:
+    driver: bridge
+volumes:
+  prometheus_data: {}
+  grafana_data: {}
+services:
+  main:
+    image: server:latest
+    environment:
+      TLSPORT: ${TLSPORT}
+      DB_CONN: ${DOCKER_DB_CONN}
+    volumes:
+    - ./uploads:/app/uploads
+    - /etc/letsencrypt/live/onmeet.ru:/etc/letsencrypt/live/onmeet.ru
+    expose:
+      - "8081"
+    restart: always
+    network_mode:
+      host
+  auth:
+    image: auth_server:latest
+    environment:
+      DB_CONN: ${DOCKER_DB_CONN}
+    expose:
+      - "8082"
+    restart: always
+    network_mode:
+      host
+  csrf:
+    image: csrf_server:latest
+    environment:
+      CSRF_SECRET: ${CSRF_SECRET}
+    restart: always
+    expose:
+      - "8083"
+    network_mode:
+      host
+  redis:
+    image: redis:latest
+    expose:
+      - "6379"
+    restart: always
+    network_mode:
+      host
+  prometheus:
+    image: prom/prometheus
+    privileged: true
+    restart: always
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+    expose:
+      - "9090"
+  node-exporter:
+    image: prom/node-exporter
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+  grafana:
+    image: grafana/grafana
+    restart: always
+    user: "grafana"
+    depends_on:
+      - prometheus
+      - node-exporter
+    ports:
+      - "3000:3000"
