@@ -2,7 +2,7 @@ package repository
 
 import (
 	"errors"
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/tag"
 	"strings"
@@ -28,14 +28,14 @@ func (t *Tag) TableName() string {
 func ToModel(t Tag) models.Tag {
 	return models.Tag{
 		TagId: t.Id,
-		Name:  t.Name,
+		Name:  strings.TrimSuffix(t.Name, "×"),
 	}
 }
 
 func ToDbObject(tag models.Tag) Tag {
 	return Tag{
 		Id:   tag.TagId,
-		Name: tag.Name,
+		Name: strings.TrimSuffix(tag.Name, "×"),
 	}
 }
 
@@ -54,7 +54,9 @@ func (h *TagGormRepo) GetTagById(id int) (models.Tag, error) {
 
 func (h *TagGormRepo) GetTagByName(name string) (models.Tag, error) {
 	var res Tag
-	db := h.db.Where("Name = ?", name).First(&res)
+	db := h.db.
+		Where("UPPER(name) = ?", strings.ToUpper(name)).
+		First(&res)
 
 	err := db.Error
 	if db.Error != nil {
@@ -70,10 +72,11 @@ func (h *TagGormRepo) CreateTag(name string) (models.Tag, error) {
 	if err != nil {
 		return models.Tag{}, err
 	}
-	return ToModel(t), nil
+	return models.Tag{Name: t.Name}, nil
 }
 
 func (h *TagGormRepo) GetOrCreateTag(name string) (models.Tag, error) {
+	name = strings.TrimSuffix(name, "×")
 	result, err := h.GetTagByName(name)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		result, err = h.CreateTag(name)

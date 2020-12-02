@@ -49,10 +49,10 @@ func (mr *MockRepositoryMockRecorder) CreateMeeting(meeting interface{}) *gomock
 }
 
 // GetMeeting mocks base method
-func (m *MockRepository) GetMeeting(meetingId, userId int, authorized bool) (models.Meeting, error) {
+func (m *MockRepository) GetMeeting(meetingId, userId int, authorized bool) (models.MeetingDetails, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMeeting", meetingId, userId, authorized)
-	ret0, _ := ret[0].(models.Meeting)
+	ret0, _ := ret[0].(models.MeetingDetails)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -77,92 +77,122 @@ func (mr *MockRepositoryMockRecorder) UpdateMeeting(userId, update interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeeting", reflect.TypeOf((*MockRepository)(nil).UpdateMeeting), userId, update)
 }
 
-// GetAll mocks base method
-func (m *MockRepository) GetAll(userId int) ([]models.Meeting, error) {
+// GetNextMeetings mocks base method
+func (m *MockRepository) GetNextMeetings(params FilterParams) ([]models.Meeting, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAll", userId)
+	ret := m.ctrl.Call(m, "GetNextMeetings", params)
 	ret0, _ := ret[0].([]models.Meeting)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAll indicates an expected call of GetAll
-func (mr *MockRepositoryMockRecorder) GetAll(userId interface{}) *gomock.Call {
+// GetNextMeetings indicates an expected call of GetNextMeetings
+func (mr *MockRepositoryMockRecorder) GetNextMeetings(params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockRepository)(nil).GetAll), userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextMeetings", reflect.TypeOf((*MockRepository)(nil).GetNextMeetings), params)
 }
 
-// FilterToday mocks base method
-func (m *MockRepository) FilterToday(userId int) ([]models.Meeting, error) {
+// GetTopMeetings mocks base method
+func (m *MockRepository) GetTopMeetings(params FilterParams) ([]models.Meeting, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FilterToday", userId)
+	ret := m.ctrl.Call(m, "GetTopMeetings", params)
 	ret0, _ := ret[0].([]models.Meeting)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FilterToday indicates an expected call of FilterToday
-func (mr *MockRepositoryMockRecorder) FilterToday(userId interface{}) *gomock.Call {
+// GetTopMeetings indicates an expected call of GetTopMeetings
+func (mr *MockRepositoryMockRecorder) GetTopMeetings(params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterToday", reflect.TypeOf((*MockRepository)(nil).FilterToday), userId)
-}
-
-// FilterTomorrow mocks base method
-func (m *MockRepository) FilterTomorrow(userId int) ([]models.Meeting, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FilterTomorrow", userId)
-	ret0, _ := ret[0].([]models.Meeting)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FilterTomorrow indicates an expected call of FilterTomorrow
-func (mr *MockRepositoryMockRecorder) FilterTomorrow(userId interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterTomorrow", reflect.TypeOf((*MockRepository)(nil).FilterTomorrow), userId)
-}
-
-// FilterFuture mocks base method
-func (m *MockRepository) FilterFuture(userId int) ([]models.Meeting, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FilterFuture", userId)
-	ret0, _ := ret[0].([]models.Meeting)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FilterFuture indicates an expected call of FilterFuture
-func (mr *MockRepositoryMockRecorder) FilterFuture(userId interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterFuture", reflect.TypeOf((*MockRepository)(nil).FilterFuture), userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTopMeetings", reflect.TypeOf((*MockRepository)(nil).GetTopMeetings), params)
 }
 
 // FilterLiked mocks base method
-func (m *MockRepository) FilterLiked(userId int) ([]models.Meeting, error) {
+func (m *MockRepository) FilterLiked(params FilterParams) ([]models.Meeting, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FilterLiked", userId)
+	ret := m.ctrl.Call(m, "FilterLiked", params)
 	ret0, _ := ret[0].([]models.Meeting)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FilterLiked indicates an expected call of FilterLiked
-func (mr *MockRepositoryMockRecorder) FilterLiked(userId interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) FilterLiked(params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterLiked", reflect.TypeOf((*MockRepository)(nil).FilterLiked), userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterLiked", reflect.TypeOf((*MockRepository)(nil).FilterLiked), params)
 }
 
 // FilterRegistered mocks base method
-func (m *MockRepository) FilterRegistered(userId int) ([]models.Meeting, error) {
+func (m *MockRepository) FilterRegistered(params FilterParams) ([]models.Meeting, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FilterRegistered", userId)
+	ret := m.ctrl.Call(m, "FilterRegistered", params)
 	ret0, _ := ret[0].([]models.Meeting)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FilterRegistered indicates an expected call of FilterRegistered
-func (mr *MockRepositoryMockRecorder) FilterRegistered(userId interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) FilterRegistered(params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterRegistered", reflect.TypeOf((*MockRepository)(nil).FilterRegistered), userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterRegistered", reflect.TypeOf((*MockRepository)(nil).FilterRegistered), params)
+}
+
+// FilterRecommended mocks base method
+func (m *MockRepository) FilterRecommended(params FilterParams) ([]models.Meeting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FilterRecommended", params)
+	ret0, _ := ret[0].([]models.Meeting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FilterRecommended indicates an expected call of FilterRecommended
+func (mr *MockRepositoryMockRecorder) FilterRecommended(params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterRecommended", reflect.TypeOf((*MockRepository)(nil).FilterRecommended), params)
+}
+
+// FilterTagged mocks base method
+func (m *MockRepository) FilterTagged(params FilterParams, tagId int) ([]models.Meeting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FilterTagged", params, tagId)
+	ret0, _ := ret[0].([]models.Meeting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FilterTagged indicates an expected call of FilterTagged
+func (mr *MockRepositoryMockRecorder) FilterTagged(params, tagId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterTagged", reflect.TypeOf((*MockRepository)(nil).FilterTagged), params, tagId)
+}
+
+// FilterSimilar mocks base method
+func (m *MockRepository) FilterSimilar(params FilterParams, meetingId int) ([]models.Meeting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FilterSimilar", params, meetingId)
+	ret0, _ := ret[0].([]models.Meeting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FilterSimilar indicates an expected call of FilterSimilar
+func (mr *MockRepositoryMockRecorder) FilterSimilar(params, meetingId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterSimilar", reflect.TypeOf((*MockRepository)(nil).FilterSimilar), params, meetingId)
+}
+
+// SearchMeetings mocks base method
+func (m *MockRepository) SearchMeetings(params FilterParams, meetingName string, limit int) ([]models.Meeting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchMeetings", params, meetingName, limit)
+	ret0, _ := ret[0].([]models.Meeting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SearchMeetings indicates an expected call of SearchMeetings
+func (mr *MockRepositoryMockRecorder) SearchMeetings(params, meetingName, limit interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchMeetings", reflect.TypeOf((*MockRepository)(nil).SearchMeetings), params, meetingName, limit)
 }

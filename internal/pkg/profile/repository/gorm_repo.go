@@ -1,7 +1,8 @@
 package repository
 
 import (
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	meetingRepo "konami_backend/internal/pkg/meeting/repository"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
@@ -59,6 +60,74 @@ func (t *SkillTag) TableName() string {
 	return "SkillTags"
 }
 
+func (h *ProfileGormRepo) GetSkillByName(name string) (SkillTag, error) {
+	var res SkillTag
+	db := h.db.
+		Where("name = ?", name).
+		First(&res)
+
+	err := db.Error
+	if db.Error != nil {
+		return SkillTag{}, err
+	}
+	return SkillTag{Id: res.Id, Name: res.Name}, nil
+}
+
+func (h *ProfileGormRepo) CreateSkill(name string) (SkillTag, error) {
+	t := SkillTag{Name: name}
+	db := h.db.Create(&t)
+	err := db.Error
+	if err != nil {
+		return SkillTag{}, err
+	}
+	return SkillTag{Id: t.Id, Name: t.Name}, nil
+}
+
+func (h *ProfileGormRepo) GetOrCreateSkill(name string) (SkillTag, error) {
+	result, err := h.GetSkillByName(name)
+	if err == gorm.ErrRecordNotFound {
+		result, err = h.CreateSkill(name)
+	}
+	if err != nil {
+		return SkillTag{}, err
+	}
+	return result, nil
+}
+
+func (h *ProfileGormRepo) GetInterestByName(name string) (InterestTag, error) {
+	var res InterestTag
+	db := h.db.
+		Where("name = ?", name).
+		First(&res)
+
+	err := db.Error
+	if db.Error != nil {
+		return InterestTag{}, err
+	}
+	return InterestTag{Id: res.Id, Name: res.Name}, nil
+}
+
+func (h *ProfileGormRepo) CreateInterest(name string) (InterestTag, error) {
+	t := InterestTag{Name: name}
+	db := h.db.Create(&t)
+	err := db.Error
+	if err != nil {
+		return InterestTag{}, err
+	}
+	return InterestTag{Id: t.Id, Name: t.Name}, nil
+}
+
+func (h *ProfileGormRepo) GetOrCreateInterest(name string) (InterestTag, error) {
+	result, err := h.GetInterestByName(name)
+	if err == gorm.ErrRecordNotFound {
+		result, err = h.CreateInterest(name)
+	}
+	if err != nil {
+		return InterestTag{}, err
+	}
+	return result, nil
+}
+
 func ToProfileCard(obj Profile) models.ProfileCard {
 	p := models.ProfileCard{
 		Label: &models.ProfileLabel{
@@ -84,7 +153,6 @@ func ToProfile(obj Profile) models.Profile {
 	p := models.Profile{
 		Card:      &card,
 		Gender:    obj.Gender,
-		Birthday:  obj.Birthday.Format("2006-01-02"),
 		City:      obj.City,
 		Login:     obj.Login,
 		PwdHash:   obj.PwdHash,
@@ -94,6 +162,9 @@ func ToProfile(obj Profile) models.Profile {
 		Aims:      obj.Aims,
 		Interests: obj.Interests,
 		Skills:    obj.Skills,
+	}
+	if obj.Birthday.Unix() != (time.Time{}).Unix() {
+		p.Birthday = obj.Birthday.Format("2006-01-02")
 	}
 	p.MeetingTags = make([]*models.Tag, len(obj.MeetingTags))
 	for i, val := range obj.MeetingTags {
@@ -110,6 +181,7 @@ func ToProfile(obj Profile) models.Profile {
 
 func ToDbObject(p models.Profile) (Profile, error) {
 	obj := Profile{
+		Id:        p.Card.Label.Id,
 		Name:      p.Card.Label.Name,
 		ImgSrc:    p.Card.Label.ImgSrc,
 		Job:       p.Card.Job,
@@ -126,7 +198,7 @@ func ToDbObject(p models.Profile) (Profile, error) {
 	}
 	obj.MeetingTags = make([]tagRepo.Tag, len(p.MeetingTags))
 	for i, el := range p.MeetingTags {
-		obj.MeetingTags[i] = tagRepo.ToDbObject(*el)
+		obj.MeetingTags[i] = tagRepo.Tag{Id: el.TagId, Name: el.Name}
 	}
 	obj.InterestTags = make([]InterestTag, len(p.Card.InterestTags))
 	for i, el := range p.Card.InterestTags {
@@ -138,7 +210,7 @@ func ToDbObject(p models.Profile) (Profile, error) {
 	}
 	if p.Birthday != "" {
 		var err error
-		layout := "2006-01-02 15:04:05"
+		layout := "2006-01-02"
 		obj.Birthday, err = time.Parse(layout, p.Birthday)
 		if err != nil {
 			return Profile{}, err
@@ -149,7 +221,12 @@ func ToDbObject(p models.Profile) (Profile, error) {
 
 func (h ProfileGormRepo) GetAll() ([]models.ProfileCard, error) {
 	var profiles []Profile
-	db := h.db.Find(&profiles)
+	db := h.db.
+		Preload("MeetingTags").
+		Preload("InterestTags").
+		Preload("SkillTags").
+		Preload("Meetings").
+		Find(&profiles)
 	err := db.Error
 	if err != nil {
 		return nil, err
@@ -165,6 +242,10 @@ func (h ProfileGormRepo) GetProfile(userId int) (models.Profile, error) {
 	var p Profile
 	db := h.db.
 		Where("id = ?", userId).
+		Preload("MeetingTags").
+		Preload("InterestTags").
+		Preload("SkillTags").
+		Preload("Meetings").
 		First(&p)
 	err := db.Error
 	if err != nil {
@@ -174,21 +255,43 @@ func (h ProfileGormRepo) GetProfile(userId int) (models.Profile, error) {
 }
 
 func (h ProfileGormRepo) EditProfile(update models.Profile) error {
-	var old Profile
-	db := h.db.
-		Where("id = ?", update.Card.Label.Id).
-		First(&old)
-	err := db.Error
-	if err != nil {
-		return err
-	}
 	updatedObj, err := ToDbObject(update)
 	if err != nil {
 		return err
 	}
-	updatedObj.Id = old.Id
-	updatedObj.Meetings = old.Meetings
-	db = h.db.Save(updatedObj)
+	target := Profile{Id: update.Card.Label.Id}
+	db := h.db.Omit(clause.Associations).Save(&updatedObj)
+
+	if db.Error == nil {
+		err = h.db.Model(&target).Association("MeetingTags").Replace(updatedObj.MeetingTags)
+	}
+	if err == nil {
+		buf := []InterestTag{}
+		for _, val := range update.Card.InterestTags {
+			tg, err := h.GetOrCreateInterest(val)
+			if err == nil {
+				buf = append(buf, tg)
+			} else {
+				return err
+			}
+		}
+		err = h.db.Model(&target).Association("InterestTags").Replace(buf)
+	}
+	if err == nil {
+		buf := []SkillTag{}
+		for _, val := range update.Card.SkillTags {
+			tg, err := h.GetOrCreateSkill(val)
+			if err == nil {
+				buf = append(buf, tg)
+			} else {
+				return err
+			}
+		}
+		err = h.db.Model(&target).Association("SkillTags").Replace(buf)
+	}
+	if err == nil {
+		err = h.db.Model(&target).Association("MeetingTags").Replace(updatedObj.MeetingTags)
+	}
 	return db.Error
 }
 
@@ -221,11 +324,45 @@ func (h ProfileGormRepo) GetCredentials(login string) (int, string, error) {
 		Where("Login = ?", login).
 		First(&obj)
 	err := db.Error
-	if gorm.IsRecordNotFoundError(err) {
+	if err == gorm.ErrRecordNotFound {
 		return 0, "", profile.ErrUserNonExistent
 	}
 	if err != nil {
 		return 0, "", err
 	}
 	return obj.Id, obj.PwdHash, nil
+}
+
+func (h *ProfileGormRepo) GetLabel(userId int) (models.ProfileLabel, error) {
+	var p Profile
+	db := h.db.
+		Where("id = ?", userId).
+		First(&p)
+	err := db.Error
+	if err != nil {
+		return models.ProfileLabel{}, err
+	}
+	return models.ProfileLabel{
+		Id:     p.Id,
+		Name:   p.Name,
+		ImgSrc: p.ImgSrc,
+	}, nil
+}
+
+func (h *ProfileGormRepo) GetSubscriptions(userId int) (tagIds []int, err error) {
+	var userProfile Profile
+	db := h.db.
+		Where("id = ?", userId).
+		Preload("MeetingTags").
+		First(&userProfile)
+	err = db.Error
+	if err != nil {
+		return nil, err
+	}
+	// Tags to which user is subscribed
+	tagIds = make([]int, len(userProfile.MeetingTags))
+	for i, t := range userProfile.MeetingTags {
+		tagIds[i] = t.Id
+	}
+	return tagIds, nil
 }

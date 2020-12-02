@@ -2,11 +2,13 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-test/deep"
-	"github.com/jinzhu/gorm"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/tag"
 	"regexp"
@@ -15,11 +17,11 @@ import (
 
 type Suite struct {
 	suite.Suite
-	DB      *gorm.DB
-	mock    sqlmock.Sqlmock
+	DB   *gorm.DB
+	mock sqlmock.Sqlmock
 	tags []models.Tag
-
 	repository tag.Repository
+	bdError error
 }
 
 func (s *Suite) SetupSuite() {
@@ -35,9 +37,16 @@ func (s *Suite) SetupSuite() {
 	db, s.mock, err = sqlmock.New()
 	require.NoError(s.T(), err)
 
-	s.DB, err = gorm.Open("postgres", db)
+	s.DB, err = gorm.Open(postgres.New(postgres.Config{
+		DriverName:           "postgres",
+		DSN:                  "sqlmock_db_0",
+		PreferSimpleProtocol: true,
+		Conn:                 db,
+	}), &gorm.Config{})
+
+	s.bdError = errors.New("some bd error")
+
 	require.NoError(s.T(), err)
-	s.DB.LogMode(true)
 
 	s.repository = NewTagGormRepo(s.DB)
 }
@@ -46,7 +55,7 @@ func (s *Suite) TestGetTagById() {
 	testId := 1
 	testTag := s.tags[0]
 
-	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "tags" WHERE (id = $1)`)).
+	s.mock.ExpectQuery("SELECT").
 		WithArgs(testId).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
 			AddRow(testTag.TagId, testTag.Name))
@@ -61,11 +70,23 @@ func (s *Suite) TestGetTagById() {
 	}, res))
 }
 
+func (s *Suite) TestGetTagByIdError() {
+	testId := 1
+
+	s.mock.ExpectQuery("SELECT").
+		WithArgs(1).
+		WillReturnError(s.bdError)
+
+	_, err := s.repository.GetTagById(testId)
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
+}
+
 func (s *Suite) TestGetTagByName() {
 	testId := "LOL"
 	testTag := s.tags[0]
 
-	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "tags" WHERE (UPPER(name) = $1)`)).
+	s.mock.ExpectQuery("SELECT").
 		WithArgs(testId).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
 			AddRow(testTag.TagId, testTag.Name))
@@ -80,22 +101,48 @@ func (s *Suite) TestGetTagByName() {
 	}, res))
 }
 
+func (s *Suite) TestGetTagByNameError() {
+	testId := "LOL"
+
+	s.mock.ExpectQuery("SELECT").
+		WithArgs(testId).
+		WillReturnError(s.bdError)
+
+	_, err := s.repository.GetTagByName(testId)
+
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
+}
+
 func (s *Suite) TestCreateTag() {
-/*	s.mock.ExpectBegin()
-	s.mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO "tags" ("name") VALUES ($1) RETURNING "tags"."id""`)).
+	s.mock.ExpectBegin()
+	s.mock.ExpectQuery("INSERT INTO").
 		WithArgs("LOL").
-		WillReturnResult(sqlmock.NewResult(0, 1))
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	s.mock.ExpectCommit()
+
+	_, err := s.repository.CreateTag("LOL")
+	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestCreateTagError() {
+	s.mock.ExpectBegin()
+	s.mock.ExpectQuery("INSERT INTO").
+		WithArgs("LOL").
+		WillReturnError(s.bdError)
 	s.mock.ExpectRollback()
 
-	_, _ = s.repository.CreateTag("LOL")*/
-	//require.NoError(s.T(), err)
+	_, err := s.repository.CreateTag("LOL")
+
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
 }
 
 func (s *Suite) TestGetOrCreateTag() {
 	testId := "LOL"
 	testTag := s.tags[0]
 
-	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "tags" WHERE (UPPER(name) = $1)`)).
+	s.mock.ExpectQuery("SELECT").
 		WithArgs(testId).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
 			AddRow(testTag.TagId, testTag.Name))
@@ -110,6 +157,36 @@ func (s *Suite) TestGetOrCreateTag() {
 	}, res))
 }
 
+func (s *Suite) TestGetOrCreateTagError() {
+	testId := "LOL"
+
+	s.mock.ExpectQuery("SELECT").
+		WithArgs(testId).
+		WillReturnError(s.bdError)
+
+	_, err := s.repository.GetOrCreateTag(testId)
+
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
+}
+
+func (s *Suite) TestGetOrCreateTagExists() {
+	testId := "LOL"
+
+	s.mock.ExpectQuery("SELECT").
+		WithArgs(testId).
+		WillReturnError(gorm.ErrRecordNotFound)
+
+	s.mock.ExpectBegin()
+	s.mock.ExpectQuery("INSERT INTO").
+		WithArgs("LOL").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	s.mock.ExpectCommit()
+
+	_, err := s.repository.GetOrCreateTag("LOL")
+	require.NoError(s.T(), err)
+}
+
 func (s *Suite) TestFilterTags() {
 	testId := "LO"
 	testTag := s.tags[0]
@@ -122,6 +199,19 @@ func (s *Suite) TestFilterTags() {
 	_, err := s.repository.FilterTags(testId)
 
 	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestFilterTagsError() {
+	testId := "LO"
+
+	s.mock.ExpectQuery(regexp.QuoteMeta(`SELECT * FROM "tags`)).
+		WithArgs().
+		WillReturnError(s.bdError)
+
+	_, err := s.repository.FilterTags(testId)
+
+	require.Error(s.T(), err)
+	require.Equal(s.T(), err, s.bdError)
 }
 
 func (s *Suite) AfterTest(_, _ string) {

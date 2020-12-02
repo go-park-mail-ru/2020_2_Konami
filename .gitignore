@@ -12,6 +12,7 @@
 *.cgo*.c
 _cgo_*
 _obj
+*.pem
 
 /VERSION.cache
 /bin/

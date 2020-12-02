@@ -121,3 +121,33 @@ func (mr *MockRepositoryMockRecorder) GetCredentials(login interface{}) *gomock.
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCredentials", reflect.TypeOf((*MockRepository)(nil).GetCredentials), login)
 }
+
+// GetLabel mocks base method
+func (m *MockRepository) GetLabel(userId int) (models.ProfileLabel, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLabel", userId)
+	ret0, _ := ret[0].(models.ProfileLabel)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLabel indicates an expected call of GetLabel
+func (mr *MockRepositoryMockRecorder) GetLabel(userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLabel", reflect.TypeOf((*MockRepository)(nil).GetLabel), userId)
+}
+
+// GetSubscriptions mocks base method
+func (m *MockRepository) GetSubscriptions(userId int) ([]int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSubscriptions", userId)
+	ret0, _ := ret[0].([]int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSubscriptions indicates an expected call of GetSubscriptions
+func (mr *MockRepositoryMockRecorder) GetSubscriptions(userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubscriptions", reflect.TypeOf((*MockRepository)(nil).GetSubscriptions), userId)
+}

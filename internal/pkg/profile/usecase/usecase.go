@@ -43,7 +43,7 @@ func (h ProfileUseCase) UpdateProfileCard(card *models.ProfileCard, data models.
 	if data.Job != nil {
 		card.Job = *data.Job
 	}
-	reMatch := regexp.MustCompile(`\#(?:([a-zA-Z0-9_а-яА-Яё\+\-*]{3,20})|(?:\(([a-zA-Z0-9_а-яА-Яё\ ]{3,20})\)))`)
+	reMatch := regexp.MustCompile(`#(?:([a-zA-Z0-9_а-яА-Яё+\-*]{3,20})|(?:\(([a-zA-Z0-9_а-яА-Яё ]{3,20})\)))`)
 	reSub := regexp.MustCompile(`[#()]`)
 	if data.Interests != nil {
 		res := reMatch.FindAllString(*data.Interests, -1)
@@ -81,9 +81,6 @@ func (h ProfileUseCase) EditProfile(userId int, data models.ProfileUpdate) error
 		if *data.Gender != "M" && *data.Gender != "F" && *data.Gender != "" {
 			return errors.New("non-binary gender not allowed :-)")
 		}
-		p.Gender = *data.Gender
-	}
-	if data.Gender != nil {
 		p.Gender = *data.Gender
 	}
 	if data.City != nil {
