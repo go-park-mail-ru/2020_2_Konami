@@ -6,10 +6,10 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/steinfletcher/apitest"
 	"github.com/stretchr/testify/assert"
+	"konami_backend/auth/pkg/session"
 	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
-	"konami_backend/internal/pkg/session"
 	"net/http"
 	"testing"
 )

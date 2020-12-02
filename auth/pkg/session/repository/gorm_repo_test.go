@@ -9,18 +9,17 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"konami_backend/internal/pkg/models"
-	"konami_backend/internal/pkg/session"
+	"konami_backend/auth/pkg/models"
+	"konami_backend/auth/pkg/session"
 	"testing"
 )
 
-
 type Suite struct {
 	suite.Suite
-	DB      *gorm.DB
-	mock    sqlmock.Sqlmock
-	sessions []models.Session
-	bdError error
+	DB         *gorm.DB
+	mock       sqlmock.Sqlmock
+	sessions   []models.Session
+	bdError    error
 	repository session.Repository
 }
 
@@ -31,7 +30,7 @@ func (s *Suite) SetupSuite() {
 	}
 	s.sessions = []models.Session{s1}
 
-	var db  *sql.DB
+	var db *sql.DB
 	var err error
 
 	db, s.mock, err = sqlmock.New()
@@ -66,7 +65,6 @@ func (s *Suite) TestGetSessions() {
 
 	require.Nil(s.T(), deep.Equal(0, res))
 }
-
 
 func (s *Suite) TestCreateTagError() {
 	s.mock.ExpectQuery("SELECT").

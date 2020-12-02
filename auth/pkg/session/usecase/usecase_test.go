@@ -3,7 +3,8 @@ package usecase
 import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"konami_backend/internal/pkg/session"
+	"konami_backend/auth/pkg/session"
+
 	"testing"
 )
 
@@ -12,7 +13,6 @@ func TestTag(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		tagRepo := session.NewMockRepository(ctrl)
-
 		ta := NewSessionUseCase(tagRepo)
 
 		tagRepo.EXPECT().GetUserId("gg")

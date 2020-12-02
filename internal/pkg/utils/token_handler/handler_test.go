@@ -1,4 +1,4 @@
-package http
+package token_handler
 
 import (
 	"errors"
@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-var testHandler CSRFHandler
+var testHandler TokenHandler
 
 func init() {
 	testHandler.Log = logger.NewLogger(os.Stdout)
@@ -29,7 +29,7 @@ func TestSessions(t *testing.T) {
 		defer ctrl.Finish()
 
 		m := csrf.NewMockUseCase(ctrl)
-		testHandler.CsrfUC = m
+		testHandler.CsrfClient = m
 
 		m.EXPECT().
 			Create("4234124", time.Now().Unix()).

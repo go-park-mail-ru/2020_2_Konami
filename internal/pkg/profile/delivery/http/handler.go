@@ -1,11 +1,10 @@
 package http
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	sessionPkg "konami_backend/auth/pkg/session"
-	"bytes"
 	"konami_backend/internal/pkg/middleware"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
@@ -61,7 +60,7 @@ func (h *ProfileHandler) GetUserId(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProfileHandler) LogIn(w http.ResponseWriter, r *http.Request) {
-	var cred models.Credentials
+	var creds models.Credentials
 	buf := new(bytes.Buffer)
 	_, _ = buf.ReadFrom(r.Body)
 	err := creds.UnmarshalJSON(buf.Bytes())
@@ -69,7 +68,7 @@ func (h *ProfileHandler) LogIn(w http.ResponseWriter, r *http.Request) {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
 	}
-	userId, err := h.ProfileUC.Validate(cred)
+	userId, err := h.ProfileUC.Validate(creds)
 	if errors.Is(err, profile.ErrInvalidCredentials) || errors.Is(err, profile.ErrUserNonExistent) {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest, ErrMsg: "invalid credentials"})
 		return

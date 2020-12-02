@@ -33,10 +33,10 @@ func (m *MockRepository) EXPECT() *MockRepositoryMockRecorder {
 }
 
 // GetUserId mocks base method
-func (m *MockRepository) GetUserId(token string) (int, error) {
+func (m *MockRepository) GetUserId(token string) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetUserId", token)
-	ret0, _ := ret[0].(int)
+	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -48,7 +48,7 @@ func (mr *MockRepositoryMockRecorder) GetUserId(token interface{}) *gomock.Call 
 }
 
 // CreateSession mocks base method
-func (m *MockRepository) CreateSession(userId int) (string, error) {
+func (m *MockRepository) CreateSession(userId int64) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateSession", userId)
 	ret0, _ := ret[0].(string)
