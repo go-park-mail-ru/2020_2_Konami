@@ -19,8 +19,10 @@ func TestTag(t *testing.T) {
 		_, err := ta.GetUserId("gg")
 		assert.NoError(t, err)
 
-		tagRepo.EXPECT().CreateSession(134)
-		_, err = ta.CreateSession(134)
+		var testNumber int64
+		testNumber = 134
+		tagRepo.EXPECT().CreateSession(testNumber)
+		_, err = ta.CreateSession(testNumber)
 		assert.NoError(t, err)
 
 		tagRepo.EXPECT().RemoveSession("ggor")

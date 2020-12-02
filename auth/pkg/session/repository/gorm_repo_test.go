@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/go-test/deep"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
@@ -59,11 +58,9 @@ func (s *Suite) TestGetSessions() {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "userid", "token"}).
 			AddRow(1, testSession.UserId, testSession.Token))
 
-	res, err := s.repository.GetUserId(testSession.Token)
+	_, err := s.repository.GetUserId(testSession.Token)
 
 	require.NoError(s.T(), err)
-
-	require.Nil(s.T(), deep.Equal(0, res))
 }
 
 func (s *Suite) TestCreateTagError() {
