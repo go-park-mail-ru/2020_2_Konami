@@ -14,8 +14,6 @@ services:
     volumes:
     - ./uploads:/app/uploads
     - /etc/letsencrypt/live/onmeet.ru:/etc/letsencrypt/live/onmeet.ru
-    expose:
-      - "8081"
     restart: always
     network_mode:
       host
@@ -23,8 +21,6 @@ services:
     image: auth_server:latest
     environment:
       DB_CONN: ${DOCKER_DB_CONN}
-    expose:
-      - "8082"
     restart: always
     network_mode:
       host
@@ -33,17 +29,13 @@ services:
     environment:
       CSRF_SECRET: ${CSRF_SECRET}
     restart: always
-    expose:
-      - "8083"
     network_mode:
       host
   redis:
     image: redis:latest
-    expose:
-      - "6379"
+    ports:
+      - "6379:6379"
     restart: always
-    network_mode:
-      host
   prometheus:
     image: prom/prometheus
     privileged: true
@@ -52,8 +44,8 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
       - --config.file=/etc/prometheus/prometheus.yml
-    expose:
-      - "9090"
+    network_mode:
+      host
   node-exporter:
     image: prom/node-exporter
     restart: always
@@ -61,8 +53,8 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
-    ports:
-      - "9100:9100"
+    network_mode:
+      host
   grafana:
     image: grafana/grafana
     restart: always
@@ -70,5 +62,5 @@ services:
     depends_on:
       - prometheus
       - node-exporter
-    ports:
-      - "3000:3000"
+    network_mode:
+      host
