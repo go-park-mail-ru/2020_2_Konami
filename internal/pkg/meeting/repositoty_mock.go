@@ -63,18 +63,74 @@ func (mr *MockRepositoryMockRecorder) GetMeeting(meetingId, userId, authorized i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeeting", reflect.TypeOf((*MockRepository)(nil).GetMeeting), meetingId, userId, authorized)
 }
 
-// UpdateMeeting mocks base method
-func (m *MockRepository) UpdateMeeting(userId int, update models.MeetingUpdate) error {
+// SetLike mocks base method
+func (m *MockRepository) SetLike(meetId, userId int) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMeeting", userId, update)
+	ret := m.ctrl.Call(m, "SetLike", meetId, userId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetLike indicates an expected call of SetLike
+func (mr *MockRepositoryMockRecorder) SetLike(meetId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLike", reflect.TypeOf((*MockRepository)(nil).SetLike), meetId, userId)
+}
+
+// RemoveLike mocks base method
+func (m *MockRepository) RemoveLike(meetId, userId int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveLike", meetId, userId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveLike indicates an expected call of RemoveLike
+func (mr *MockRepositoryMockRecorder) RemoveLike(meetId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveLike", reflect.TypeOf((*MockRepository)(nil).RemoveLike), meetId, userId)
+}
+
+// SetReg mocks base method
+func (m *MockRepository) SetReg(meetId, userId int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetReg", meetId, userId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetReg indicates an expected call of SetReg
+func (mr *MockRepositoryMockRecorder) SetReg(meetId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReg", reflect.TypeOf((*MockRepository)(nil).SetReg), meetId, userId)
+}
+
+// RemoveReg mocks base method
+func (m *MockRepository) RemoveReg(meetId, userId int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveReg", meetId, userId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveReg indicates an expected call of RemoveReg
+func (mr *MockRepositoryMockRecorder) RemoveReg(meetId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveReg", reflect.TypeOf((*MockRepository)(nil).RemoveReg), meetId, userId)
+}
+
+// UpdateMeeting mocks base method
+func (m *MockRepository) UpdateMeeting(update models.MeetingCard) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMeeting", update)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMeeting indicates an expected call of UpdateMeeting
-func (mr *MockRepositoryMockRecorder) UpdateMeeting(userId, update interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) UpdateMeeting(update interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeeting", reflect.TypeOf((*MockRepository)(nil).UpdateMeeting), userId, update)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeeting", reflect.TypeOf((*MockRepository)(nil).UpdateMeeting), update)
 }
 
 // GetNextMeetings mocks base method

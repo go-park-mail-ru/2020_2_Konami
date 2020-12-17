@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"konami_backend/internal/pkg/meeting"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/profile"
@@ -24,6 +25,7 @@ func NewMeetingGormRepo(db *gorm.DB, profileRepo profile.Repository) meeting.Rep
 func NewMeetingGormRepoLite(db *gorm.DB) meeting.Repository {
 	return &MeetingGormRepo{db: db}
 }
+
 type Meeting struct {
 	Id         int `gorm:"primaryKey;autoIncrement;"`
 	AuthorId   int
@@ -333,28 +335,17 @@ func (h *MeetingGormRepo) GetMeeting(meetingId, userId int, authorized bool) (mo
 	return h.ToMeetingDetails(m, userId)
 }
 
-func (h *MeetingGormRepo) UpdateMeeting(userId int, update models.MeetingUpdate) error {
-	_, err := h.GetMeeting(update.MeetId, -1, false)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return meeting.ErrMeetingNotFound
-	}
+func (h *MeetingGormRepo) UpdateMeeting(update models.MeetingCard) error {
+	obj, err := ToDbObject(update)
 	if err != nil {
 		return err
 	}
-	if update.Fields.Like != nil && *update.Fields.Like == true {
-		err = h.SetLike(update.MeetId, userId)
-	} else if update.Fields.Like != nil && *update.Fields.Like == false {
-		err = h.RemoveLike(update.MeetId, userId)
+	obj.Id = update.Label.Id
+	db := h.db.Omit(clause.Associations).Save(&obj)
+	if db.Error == nil {
+		err = h.db.Model(&obj).Association("Tags").Replace(obj.Tags)
 	}
-	if err != nil {
-		return err
-	}
-	if update.Fields.Reg != nil && *update.Fields.Reg == true {
-		err = h.SetReg(update.MeetId, userId)
-	} else if update.Fields.Reg != nil && *update.Fields.Reg == false {
-		err = h.RemoveReg(update.MeetId, userId)
-	}
-	return err
+	return db.Error
 }
 
 func (h *MeetingGormRepo) GetNextMeetings(params meeting.FilterParams) ([]models.Meeting, error) {

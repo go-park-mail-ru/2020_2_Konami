@@ -3,10 +3,12 @@ package usecase
 import (
 	"errors"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 	"konami_backend/internal/pkg/meeting"
 	"konami_backend/internal/pkg/models"
 	"konami_backend/internal/pkg/tag"
 	"konami_backend/internal/pkg/utils/uploads_handler"
+	"strings"
 )
 
 type MeetingUseCase struct {
@@ -84,7 +86,79 @@ func (uc *MeetingUseCase) GetMeeting(meetingId, userId int, authorized bool) (mo
 }
 
 func (uc *MeetingUseCase) UpdateMeeting(userId int, update models.MeetingUpdate) error {
-	return uc.MeetRepo.UpdateMeeting(userId, update)
+	if update.Fields == nil {
+		return errors.New("invalid update data")
+	}
+	m, err := uc.MeetRepo.GetMeeting(update.MeetId, -1, false)
+	if err != nil {
+		return errors.New("invalid meeting id")
+	}
+	if update.Fields.Card != nil && update.Fields.Card.Photo != nil {
+		imgSrc := uc.MeetingCoversDir + "/" + uuid.New().String()
+		if !strings.HasSuffix(m.Card.Label.Cover, uc.defaultImgSrc) {
+			imgSrc = strings.TrimPrefix(m.Card.Label.Cover, uc.UploadsHandler.UploadsDir+"/")
+		}
+		m.Card.Label.Cover, err = uc.UploadsHandler.UploadBase64Image(imgSrc, update.Fields.Card.Photo)
+		if err != nil {
+			return err
+		}
+	}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return meeting.ErrMeetingNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if update.Fields.Like != nil && *update.Fields.Like == true {
+		err = uc.MeetRepo.SetLike(update.MeetId, userId)
+	} else if update.Fields.Like != nil && *update.Fields.Like == false {
+		err = uc.MeetRepo.RemoveLike(update.MeetId, userId)
+	}
+	if err != nil {
+		return err
+	}
+	if update.Fields.Reg != nil && *update.Fields.Reg == true {
+		err = uc.MeetRepo.SetReg(update.MeetId, userId)
+	} else if update.Fields.Reg != nil && *update.Fields.Reg == false {
+		err = uc.MeetRepo.RemoveReg(update.MeetId, userId)
+	}
+	if update.Fields.Card == nil {
+		return err
+	}
+	if update.Fields.Card.Address != nil {
+		m.Card.Address = *update.Fields.Card.Address
+	}
+	if update.Fields.Card.City != nil {
+		m.Card.City = *update.Fields.Card.City
+	}
+	if update.Fields.Card.Start != nil {
+		m.Card.StartDate = *update.Fields.Card.Start
+	}
+	if update.Fields.Card.End != nil {
+		m.Card.EndDate = *update.Fields.Card.End
+	}
+	if update.Fields.Card.Seats != nil {
+		occupied := m.Card.Seats - m.Card.SeatsLeft
+		m.Card.Seats = *update.Fields.Card.Seats
+		m.Card.SeatsLeft = m.Card.Seats - occupied
+	}
+	if update.Fields.Card.Text != nil {
+		m.Card.Text = *update.Fields.Card.Text
+	}
+	if update.Fields.Card.Title != nil {
+		m.Card.Label.Title = *update.Fields.Card.Title
+	}
+	if update.Fields.Card.Tags != nil {
+		m.Card.Tags = []*models.Tag{}
+		for _, tagName := range update.Fields.Card.Tags {
+			t, err := uc.TagRepo.GetOrCreateTag(tagName)
+			if err != nil {
+				return err
+			}
+			m.Card.Tags = append(m.Card.Tags, &t)
+		}
+	}
+	return uc.MeetRepo.UpdateMeeting(*m.Card)
 }
 
 func (uc *MeetingUseCase) GetNextMeetings(params meeting.FilterParams) ([]models.Meeting, error) {

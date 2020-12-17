@@ -141,6 +141,16 @@ func easyjson7da70205DecodeKonamiBackendInternalPkgModels1(in *jlexer.Lexer, out
 				}
 				*out.Like = bool(in.Bool())
 			}
+		case "card":
+			if in.IsNull() {
+				in.Skip()
+				out.Card = nil
+			} else {
+				if out.Card == nil {
+					out.Card = new(MeetingData)
+				}
+				(*out.Card).UnmarshalEasyJSON(in)
+			}
 		default:
 			in.SkipRecursive()
 		}
@@ -171,6 +181,15 @@ func easyjson7da70205EncodeKonamiBackendInternalPkgModels1(out *jwriter.Writer, 
 			out.RawString("null")
 		} else {
 			out.Bool(bool(*in.Like))
+		}
+	}
+	{
+		const prefix string = ",\"card\":"
+		out.RawString(prefix)
+		if in.Card == nil {
+			out.RawString("null")
+		} else {
+			(*in.Card).MarshalEasyJSON(out)
 		}
 	}
 	out.RawByte('}')

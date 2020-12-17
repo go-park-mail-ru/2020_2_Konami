@@ -21,7 +21,11 @@ type FilterParams struct {
 type Repository interface {
 	CreateMeeting(meeting models.Meeting) (meetingId int, err error)
 	GetMeeting(meetingId, userId int, authorized bool) (models.MeetingDetails, error)
-	UpdateMeeting(userId int, update models.MeetingUpdate) error
+	SetLike(meetId int, userId int) error
+	RemoveLike(meetId int, userId int) error
+	SetReg(meetId int, userId int) error
+	RemoveReg(meetId int, userId int) error
+	UpdateMeeting(update models.MeetingCard) error
 	GetNextMeetings(params FilterParams) ([]models.Meeting, error)
 	GetTopMeetings(params FilterParams) ([]models.Meeting, error)
 	FilterLiked(params FilterParams) ([]models.Meeting, error)
