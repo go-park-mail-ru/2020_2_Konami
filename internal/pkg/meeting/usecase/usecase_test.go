@@ -27,11 +27,6 @@ func TestTag(t *testing.T) {
 		_, err := uc.GetMeeting(1, 1, true)
 		assert.NoError(t, err)
 
-		mRep.EXPECT().UpdateMeeting(1, models.MeetingUpdate{}).
-			Return(nil)
-		err = uc.UpdateMeeting(1, models.MeetingUpdate{})
-		assert.NoError(t, err)
-
 		mRep.EXPECT().GetNextMeetings(meeting.FilterParams{}).
 			Return([]models.Meeting{}, nil)
 		_, err = uc.GetNextMeetings(meeting.FilterParams{})
@@ -67,7 +62,7 @@ func TestTag(t *testing.T) {
 		_, err = uc.FilterSimilar(meeting.FilterParams{}, 1)
 		assert.NoError(t, err)
 
-		mRep.EXPECT().SearchMeetings(meeting.FilterParams{}, "LOL",1).
+		mRep.EXPECT().SearchMeetings(meeting.FilterParams{}, "LOL", 1).
 			Return([]models.Meeting{}, nil)
 		_, err = uc.SearchMeetings(meeting.FilterParams{}, "LOL", 1)
 		assert.NoError(t, err)
