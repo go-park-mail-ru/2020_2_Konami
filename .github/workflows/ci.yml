@@ -28,16 +28,21 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/deploy'
     runs-on: ubuntu-latest
+    container:
+      image: kroniak/ssh-client
     steps:
-      - uses: actions/checkout@v1
-      - name: Push to server
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SERVER_SSHKEY }}
-          script: >
-            cd ${{ secrets.PROJECT_PATH }} && git pull && docker build -t server . &&
-            docker build -t csrf_server -f ./csrf/Dockerfile . &&
-            docker build -t auth_server -f ./auth/Dockerfile . &&
-            docker-compose -d up
+      - uses: actions/checkout@v2
+      - name: Decode key
+        env:
+          DEPLOYMENTKEY: ${{ secrets.BASE64_KEY }}
+          PRUNE_DOCKER: cffd6e0f3e06
+        run: |
+          echo "$DEPLOYMENTKEY" | base64 -d  >deployment.key
+          chmod 400 deployment.key
+      - name: Update server
+        run: |
+          ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i deployment.key \
+          ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} ". ~/.profile && cd ${{ secrets.PROJECT_PATH }} &&
+          git pull && docker-compose down && prune_docker && docker build -t server . &&
+          prune_docker && docker build -t csrf_server -f ./csrf/Dockerfile . && prune_docker
+          docker build -t auth_server -f ./auth/Dockerfile . && prune_docker && docker-compose up -d"
