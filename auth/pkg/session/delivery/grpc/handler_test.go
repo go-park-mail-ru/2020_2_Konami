@@ -75,7 +75,7 @@ func TestGRPC(t *testing.T) {
 		m := session.NewMockUseCase(ctrl)
 		testHandler = NewSessionHandler(m)
 
-		var id = 123
+		var id int64 = 123
 
 		testStr := "TOK"
 		m.EXPECT().GetUserId(testStr).Return(id, errors.New("Err"))
