@@ -396,6 +396,36 @@ func (h *MeetingGormRepo) FilterLiked(params meeting.FilterParams) ([]models.Mee
 	return result, nil
 }
 
+func (h *MeetingGormRepo) FilterLikedTags(userId int) (map[int]bool, error) {
+	var likes []Like
+	db := h.db.
+		Where("User_Id = ?", userId).
+		Order("Meeting_Id ASC").
+		Find(&likes)
+
+	if db.Error != nil {
+		return nil, db.Error
+	}
+	result := map[int]bool{}
+	for _, el := range likes {
+		var m Meeting
+		db = h.db.
+			Where("id = ?", el.MeetingId).
+			Preload("Tags").
+			First(&m)
+		if errors.Is(db.Error, gorm.ErrRecordNotFound) {
+			continue
+		}
+		if db.Error != nil {
+			return nil, db.Error
+		}
+		for _, t := range m.Tags {
+			result[t.Id] = true
+		}
+	}
+	return result, nil
+}
+
 func (h *MeetingGormRepo) FilterRegistered(params meeting.FilterParams) ([]models.Meeting, error) {
 	var regs []Registration
 	db := h.db.
@@ -453,13 +483,24 @@ func (h *MeetingGormRepo) ExtractMeetingsFromRows(params meeting.FilterParams, r
 }
 
 func (h *MeetingGormRepo) FilterRecommended(params meeting.FilterParams) ([]models.Meeting, error) {
-	tagIds, err := h.profRepo.GetSubscriptions(params.UserId)
+	subscriptions, err := h.profRepo.GetSubscriptions(params.UserId)
 	if err != nil {
 		return nil, err
 	}
+	likedTags, err := h.FilterLikedTags(params.UserId)
+	if err != nil {
+		return nil, err
+	}
+	for _, el := range subscriptions {
+		likedTags[el] = true
+	}
+	likedTagsList := []int{}
+	for k := range likedTags {
+		likedTagsList = append(likedTagsList, k)
+	}
 	// Meetings with whose tags
 	rows, err := h.db.Table("meeting_tags").
-		Where("tag_id IN ?", tagIds).
+		Where("tag_id IN ?", likedTagsList).
 		Where("meeting_id > ?", params.PrevId).
 		Order("meeting_id ASC").
 		Distinct("meeting_id").Rows()
