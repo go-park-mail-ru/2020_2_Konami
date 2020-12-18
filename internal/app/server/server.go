@@ -191,7 +191,7 @@ func Start() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8001"
+		port = "8080"
 	}
 	certFile := os.Getenv("CERTFILE")
 	if certFile == "" {
@@ -202,17 +202,21 @@ func Start() {
 		keyFile = "/etc/letsencrypt/live/onmeet.ru/privkey.pem"
 	}
 	tlsPort := os.Getenv("TLSPORT")
-	if tlsPort == "" {
-		logger.Println("Launching at HTTP port " + port)
-		err = http.ListenAndServe(":"+port, h)
-	} else {
+	if tlsPort != "" {
 		logger.Println("Launching at HTTPS port " + tlsPort)
-		err = http.ListenAndServeTLS(":"+tlsPort, certFile, keyFile, h)
+		go func() {
+			errHttps := http.ListenAndServeTLS(":"+tlsPort, certFile, keyFile, h)
+			if errHttps != nil {
+				logger.Fatal("Unable to launch HTTPS server: ", errHttps)
+			}
+		}()
 	}
-
+	logger.Println("Launching at HTTP port " + port)
+	err = http.ListenAndServe(":"+port, h)
 	if err != nil {
 		logger.Fatal("Unable to launch server: ", err)
 	}
+
 }
 
 func Migrate() {

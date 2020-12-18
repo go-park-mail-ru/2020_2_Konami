@@ -33,7 +33,11 @@ jobs:
       - name: Push to server
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SERVER_IP }}
+          host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          script: cd ${{ secrets.PROJECT_PATH }} && git pull && docker-compose -d up
+          key: ${{ secrets.SERVER_SSHKEY }}
+          script: >
+            cd ${{ secrets.PROJECT_PATH }} && git pull && docker build -t server . &&
+            docker build -t csrf_server -f ./csrf/Dockerfile . &&
+            docker build -t auth_server -f ./auth/Dockerfile . &&
+            docker-compose -d up

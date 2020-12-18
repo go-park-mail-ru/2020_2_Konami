@@ -13,7 +13,7 @@ services:
       DB_CONN: ${DOCKER_DB_CONN}
     volumes:
     - ./uploads:/app/uploads
-    - /etc/letsencrypt/live/onmeet.ru:/etc/letsencrypt/live/onmeet.ru
+    - ./keys:/etc/letsencrypt/live/onmeet.ru
     restart: always
     network_mode:
       host

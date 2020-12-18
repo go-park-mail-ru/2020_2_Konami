@@ -5,6 +5,7 @@ import (
 	"konami_backend/logger"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -50,7 +51,8 @@ func (m AccessLogMiddleware) Log(next http.Handler) http.Handler {
 		start := time.Now()
 		rec := statusRecorder{w, 200}
 		next.ServeHTTP(&rec, r)
-		hits.WithLabelValues(strconv.Itoa(rec.status), r.URL.String(), r.Method).Inc()
+		url := strings.Split(r.URL.String(), "?")[0]
+		hits.WithLabelValues(strconv.Itoa(rec.status), url, r.Method).Inc()
 		timings.WithLabelValues(r.URL.String()).Observe(time.Since(start).Seconds())
 		m.Logger.LogAccess(r, rec.status, time.Since(start))
 	})
