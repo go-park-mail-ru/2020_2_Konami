@@ -19,8 +19,7 @@ func TestGRPC(t *testing.T) {
 		m := session.NewMockUseCase(ctrl)
 		testHandler = NewSessionHandler(m)
 
-		var id int64
-		id = 123
+		var id int64 = 123
 
 		testStr := "TOK"
 		m.EXPECT().CreateSession(id).Return(testStr, nil)
@@ -34,8 +33,7 @@ func TestGRPC(t *testing.T) {
 		m := session.NewMockUseCase(ctrl)
 		testHandler = NewSessionHandler(m)
 
-		var id int64
-		id = 123
+		var id int64 = 123
 
 		testStr := "TOK"
 		m.EXPECT().CreateSession(id).Return(testStr, errors.New("err"))
@@ -49,12 +47,11 @@ func TestGRPC(t *testing.T) {
 		m := session.NewMockUseCase(ctrl)
 		testHandler = NewSessionHandler(m)
 
-		var id int64
-		id = 123
+		var id int64 = 123
 
 		testStr := "TOK"
 		m.EXPECT().GetUserId(testStr).Return(id, nil)
-		_, _ = testHandler. Check(context.Background(), &auth.SessionToken{Token: "TOK"})
+		_, _ = testHandler.Check(context.Background(), &auth.SessionToken{Token: "TOK"})
 	})
 
 	t.Run("GRPCCheakBad1", func(t *testing.T) {
@@ -64,12 +61,11 @@ func TestGRPC(t *testing.T) {
 		m := session.NewMockUseCase(ctrl)
 		testHandler = NewSessionHandler(m)
 
-		var id int64
-		id = 123
+		var id int64 = 123
 
 		testStr := "TOK"
 		m.EXPECT().GetUserId(testStr).Return(id, session.ErrSessionNotFound)
-		_, _ = testHandler. Check(context.Background(), &auth.SessionToken{Token: "TOK"})
+		_, _ = testHandler.Check(context.Background(), &auth.SessionToken{Token: "TOK"})
 	})
 
 	t.Run("GRPCCheakBad1", func(t *testing.T) {
@@ -79,12 +75,11 @@ func TestGRPC(t *testing.T) {
 		m := session.NewMockUseCase(ctrl)
 		testHandler = NewSessionHandler(m)
 
-		var id int64
-		id = 123
+		var id = 123
 
 		testStr := "TOK"
 		m.EXPECT().GetUserId(testStr).Return(id, errors.New("Err"))
-		_, _ = testHandler. Check(context.Background(), &auth.SessionToken{Token: "TOK"})
+		_, _ = testHandler.Check(context.Background(), &auth.SessionToken{Token: "TOK"})
 	})
 
 	t.Run("GRPCDelete", func(t *testing.T) {

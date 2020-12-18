@@ -292,7 +292,7 @@ func (h ProfileGormRepo) EditProfile(update models.Profile) error {
 	if err == nil {
 		err = h.db.Model(&target).Association("MeetingTags").Replace(updatedObj.MeetingTags)
 	}
-	return db.Error
+	return err
 }
 
 func (h ProfileGormRepo) EditProfilePic(userId int, imgSrc string) error {

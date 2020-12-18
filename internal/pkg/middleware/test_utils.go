@@ -26,7 +26,7 @@ func SetVarsAndMux(next http.HandlerFunc, args []QueryArgs, args2 []RouteArgs) h
 
 		ctx := r.Context()
 		for _, val := range args2 {
-			ctx = context.WithValue(ctx, val.Key, val.Value)
+			ctx = context.WithValue(ctx, val.Key, val.Value) // nolint:staticcheck
 		}
 
 		next(w, r.WithContext(ctx))
@@ -50,7 +50,7 @@ func SetMuxVars(next http.HandlerFunc, args []RouteArgs) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		for _, val := range args {
-			ctx = context.WithValue(ctx, val.Key, val.Value)
+			ctx = context.WithValue(ctx, val.Key, val.Value) // nolint:staticcheck
 		}
 		next(w, r.WithContext(ctx))
 	}

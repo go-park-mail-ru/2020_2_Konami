@@ -3,6 +3,16 @@ name: CI
 on: [push]
 
 jobs:
+  lint:
+    name: linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v1
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@v1
+        with:
+          workdir: ./
   test:
     name: tests
     runs-on: ubuntu-latest

@@ -173,10 +173,7 @@ func (h *MeetingGormRepo) LikeExists(meetId int, userId int) bool {
 		Where("meeting_id = ?", meetId).
 		Where("user_id = ?", userId).
 		First(&l)
-	if db.Error == nil {
-		return true
-	}
-	return false
+	return db.Error == nil
 }
 
 func (h *MeetingGormRepo) SetLike(meetId int, userId int) error {
@@ -234,10 +231,7 @@ func (h *MeetingGormRepo) RegExists(meetId int, userId int) bool {
 		Where("meeting_id = ?", meetId).
 		Where("user_id = ?", userId).
 		First(&l)
-	if db.Error == nil {
-		return true
-	}
-	return false
+	return db.Error == nil
 }
 
 func (h *MeetingGormRepo) SetReg(meetId int, userId int) error {
@@ -342,10 +336,11 @@ func (h *MeetingGormRepo) UpdateMeeting(update models.MeetingCard) error {
 	}
 	obj.Id = update.Label.Id
 	db := h.db.Omit(clause.Associations).Save(&obj)
-	if db.Error == nil {
+	err = db.Error
+	if err == nil {
 		err = h.db.Model(&obj).Association("Tags").Replace(obj.Tags)
 	}
-	return db.Error
+	return err
 }
 
 func (h *MeetingGormRepo) GetNextMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
@@ -459,6 +454,9 @@ func (h *MeetingGormRepo) ExtractMeetingsFromRows(params meeting.FilterParams, r
 
 func (h *MeetingGormRepo) FilterRecommended(params meeting.FilterParams) ([]models.Meeting, error) {
 	tagIds, err := h.profRepo.GetSubscriptions(params.UserId)
+	if err != nil {
+		return nil, err
+	}
 	// Meetings with whose tags
 	rows, err := h.db.Table("meeting_tags").
 		Where("tag_id IN ?", tagIds).

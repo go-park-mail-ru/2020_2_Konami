@@ -109,17 +109,17 @@ func (uc *MeetingUseCase) UpdateMeeting(userId int, update models.MeetingUpdate)
 	if err != nil {
 		return err
 	}
-	if update.Fields.Like != nil && *update.Fields.Like == true {
+	if update.Fields.Like != nil && *update.Fields.Like {
 		err = uc.MeetRepo.SetLike(update.MeetId, userId)
-	} else if update.Fields.Like != nil && *update.Fields.Like == false {
+	} else if update.Fields.Like != nil && !*update.Fields.Like {
 		err = uc.MeetRepo.RemoveLike(update.MeetId, userId)
 	}
 	if err != nil {
 		return err
 	}
-	if update.Fields.Reg != nil && *update.Fields.Reg == true {
+	if update.Fields.Reg != nil && *update.Fields.Reg {
 		err = uc.MeetRepo.SetReg(update.MeetId, userId)
-	} else if update.Fields.Reg != nil && *update.Fields.Reg == false {
+	} else if update.Fields.Reg != nil && !*update.Fields.Reg {
 		err = uc.MeetRepo.RemoveReg(update.MeetId, userId)
 	}
 	if update.Fields.Card == nil {

@@ -19,8 +19,7 @@ func TestCSRF(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		var logger *loggerPkg.Logger
-		logger = loggerPkg.NewLogger(os.Stdout)
+		logger := loggerPkg.NewLogger(os.Stdout)
 		logger.SetLevel(logrus.TraceLevel)
 
 		m := csrf.NewMockUseCase(ctrl)
@@ -40,8 +39,7 @@ func TestCSRF(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		var logger *loggerPkg.Logger
-		logger = loggerPkg.NewLogger(os.Stdout)
+		logger := loggerPkg.NewLogger(os.Stdout)
 		logger.SetLevel(logrus.TraceLevel)
 
 		m := csrf.NewMockUseCase(ctrl)
@@ -61,8 +59,7 @@ func TestCSRF(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		var logger *loggerPkg.Logger
-		logger = loggerPkg.NewLogger(os.Stdout)
+		logger := loggerPkg.NewLogger(os.Stdout)
 		logger.SetLevel(logrus.TraceLevel)
 
 		m := csrf.NewMockUseCase(ctrl)
@@ -82,8 +79,7 @@ func TestCSRF(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		var logger *loggerPkg.Logger
-		logger = loggerPkg.NewLogger(os.Stdout)
+		logger := loggerPkg.NewLogger(os.Stdout)
 		logger.SetLevel(logrus.TraceLevel)
 
 		m := csrf.NewMockUseCase(ctrl)
@@ -102,8 +98,7 @@ func TestCSRF(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		var logger *loggerPkg.Logger
-		logger = loggerPkg.NewLogger(os.Stdout)
+		logger := loggerPkg.NewLogger(os.Stdout)
 		logger.SetLevel(logrus.TraceLevel)
 
 		m := csrf.NewMockUseCase(ctrl)
@@ -122,8 +117,7 @@ func TestCSRF(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		var logger *loggerPkg.Logger
-		logger = loggerPkg.NewLogger(os.Stdout)
+		logger := loggerPkg.NewLogger(os.Stdout)
 		logger.SetLevel(logrus.TraceLevel)
 
 		m := csrf.NewMockUseCase(ctrl)

@@ -26,23 +26,23 @@ func (m *CSRFMiddleware) CSRFCheck(next http.Handler) http.Handler {
 		ctx := r.Context()
 		authTok, ok := ctx.Value(AuthToken).(string)
 		if !ok {
-			ctx = context.WithValue(ctx, CSRFValid, false)
+			ctx = context.WithValue(ctx, CSRFValid, false) // nolint:staticcheck
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 		CSRFToken := r.Header.Get("Csrf-Token")
 		if CSRFToken == "" {
-			ctx = context.WithValue(ctx, CSRFValid, false)
+			ctx = context.WithValue(ctx, CSRFValid, false) // nolint:staticcheck
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 		isValid, err := m.CsrfClient.Check(context.Background(), &csrf.CsrfToken{Token: CSRFToken, Sid: authTok})
 		if err != nil || !isValid.Value {
-			ctx = context.WithValue(ctx, CSRFValid, false)
+			ctx = context.WithValue(ctx, CSRFValid, false) // nolint:staticcheck
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
-		ctx = context.WithValue(ctx, CSRFValid, true)
+		ctx = context.WithValue(ctx, CSRFValid, true) // nolint:staticcheck
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

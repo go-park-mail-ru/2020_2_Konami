@@ -74,7 +74,7 @@ func (h UploadsHandler) UploadImage(imgPath string, img io.Reader) (string, erro
 		return "", err
 	}
 	defer f.Close()
-	var written int64 = 0
+	var written int64
 	written, err = io.Copy(f, img)
 	if err != nil {
 		return "", err
