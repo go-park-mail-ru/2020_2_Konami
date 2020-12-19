@@ -52,9 +52,9 @@ func TestTag(t *testing.T) {
 		_, err = uc.FilterRecommended(meeting.FilterParams{})
 		assert.NoError(t, err)
 
-		mRep.EXPECT().FilterTagged(meeting.FilterParams{}, 1).
+		mRep.EXPECT().FilterTagged(meeting.FilterParams{}, []string{"1"}).
 			Return([]models.Meeting{}, nil)
-		_, err = uc.FilterTagged(meeting.FilterParams{}, 1)
+		_, err = uc.FilterTagged(meeting.FilterParams{}, []string{"1"})
 		assert.NoError(t, err)
 
 		mRep.EXPECT().FilterSimilar(meeting.FilterParams{}, 1).

@@ -189,8 +189,8 @@ func (uc *MeetingUseCase) FilterRecommended(params meeting.FilterParams) ([]mode
 	return uc.MeetRepo.FilterRecommended(params)
 }
 
-func (uc *MeetingUseCase) FilterTagged(params meeting.FilterParams, tagId int) ([]models.Meeting, error) {
-	return uc.MeetRepo.FilterTagged(params, tagId)
+func (uc *MeetingUseCase) FilterTagged(params meeting.FilterParams, tags []string) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterTagged(params, tags)
 }
 
 func (uc *MeetingUseCase) FilterSimilar(params meeting.FilterParams, meetingId int) ([]models.Meeting, error) {

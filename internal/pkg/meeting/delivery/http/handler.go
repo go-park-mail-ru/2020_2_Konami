@@ -156,13 +156,13 @@ func (h *MeetingHandler) GetRecommendedList(w http.ResponseWriter, r *http.Reque
 
 func (h *MeetingHandler) GetTaggedMeetings(w http.ResponseWriter, r *http.Request) {
 	params := GetQueryParams(r)
-	tagId, err := strconv.Atoi(r.URL.Query().Get("tagId"))
-	if err != nil || tagId < 0 {
+	tags, exist := r.URL.Query()["tag"]
+	if !exist || len(tags) == 0 {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
 	}
 	var meets []models.Meeting
-	meets, err = h.MeetingUC.FilterTagged(params, tagId)
+	meets, err := h.MeetingUC.FilterTagged(params, tags)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return

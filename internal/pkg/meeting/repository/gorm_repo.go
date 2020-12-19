@@ -563,12 +563,13 @@ func (h *MeetingGormRepo) FilterRecommended(params meeting.FilterParams) ([]mode
 	return h.ToMeetingList(meetings, params.UserId)
 }
 
-func (h *MeetingGormRepo) FilterTagged(params meeting.FilterParams, tagId int) ([]models.Meeting, error) {
+func (h *MeetingGormRepo) FilterTagged(params meeting.FilterParams, tags []string) ([]models.Meeting, error) {
 	rows, err := h.db.Table("meeting_tags").
-		Where("tag_id = ?", tagId).
-		Where("meeting_id > ?", params.PrevId).
-		Order("meeting_id ASC").
-		Distinct("meeting_id").Rows()
+		Joins("JOIN tags ON tags.id = meeting_tags.tag_id").
+		Where("tags.name IN ?", tags).
+		Where("meeting_tags.meeting_id > ?", params.PrevId).
+		Order("meeting_tags.meeting_id ASC").
+		Distinct("meeting_tags.meeting_id").Rows()
 	if err != nil {
 		return nil, err
 	}

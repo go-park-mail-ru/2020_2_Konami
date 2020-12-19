@@ -168,7 +168,6 @@ func TestSessions(t *testing.T) {
 			End()
 	})
 
-
 	t.Run("GetUserMeetErr2", func(t *testing.T) {
 		var args []middleware.QueryArgs
 		args = append(args, middleware.QueryArgs{Key: "start", Value: "2006-01-02"})
@@ -481,7 +480,7 @@ func TestSessions(t *testing.T) {
 		args = append(args, middleware.QueryArgs{Key: "end", Value: "2007-01-02"})
 		args = append(args, middleware.QueryArgs{Key: "prevId", Value: "3"})
 		args = append(args, middleware.QueryArgs{Key: "limit", Value: "10"})
-		args = append(args, middleware.QueryArgs{Key: "tagId", Value: "15"})
+		args = append(args, middleware.QueryArgs{Key: "tag", Value: "banana"})
 
 		var args2 []middleware.RouteArgs
 		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: 4})
@@ -503,7 +502,7 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
-		}, 15).Return([]models.Meeting{}, nil)
+		}, []string{"banana"}).Return([]models.Meeting{}, nil)
 
 		apitest.New("GetMeetingsList").
 			Handler(handler).
@@ -520,7 +519,7 @@ func TestSessions(t *testing.T) {
 		args = append(args, middleware.QueryArgs{Key: "end", Value: "2007-01-02"})
 		args = append(args, middleware.QueryArgs{Key: "prevId", Value: "3"})
 		args = append(args, middleware.QueryArgs{Key: "limit", Value: "10"})
-		args = append(args, middleware.QueryArgs{Key: "tagId", Value: "15"})
+		args = append(args, middleware.QueryArgs{Key: "tag", Value: "banana"})
 
 		var args2 []middleware.RouteArgs
 		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: 4})
@@ -542,7 +541,7 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
-		}, 15).Return([]models.Meeting{}, errors.New("Err"))
+		}, []string{"banana"}).Return([]models.Meeting{}, errors.New("Err"))
 
 		apitest.New("GetMeetingsList").
 			Handler(handler).
@@ -559,7 +558,6 @@ func TestSessions(t *testing.T) {
 		args = append(args, middleware.QueryArgs{Key: "end", Value: "2007-01-02"})
 		args = append(args, middleware.QueryArgs{Key: "prevId", Value: "3"})
 		args = append(args, middleware.QueryArgs{Key: "limit", Value: "10"})
-		args = append(args, middleware.QueryArgs{Key: "tagId", Value: "-2"})
 
 		var args2 []middleware.RouteArgs
 		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: -1})
@@ -664,7 +662,6 @@ func TestSessions(t *testing.T) {
 		args = append(args, middleware.QueryArgs{Key: "end", Value: "2007-01-02"})
 		args = append(args, middleware.QueryArgs{Key: "prevId", Value: "3"})
 		args = append(args, middleware.QueryArgs{Key: "limit", Value: "10"})
-		args = append(args, middleware.QueryArgs{Key: "tagId", Value: "-2"})
 
 		var args2 []middleware.RouteArgs
 		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: -1})
@@ -999,7 +996,6 @@ func TestSessions(t *testing.T) {
 			End()
 	})
 
-
 	t.Run("GetUserMeet", func(t *testing.T) {
 		var args []middleware.QueryArgs
 
@@ -1170,7 +1166,6 @@ func TestSessions(t *testing.T) {
 			Status(http.StatusOK).
 			End()
 	})
-
 
 	t.Run("GetMeetingsList", func(t *testing.T) {
 		var args []middleware.QueryArgs

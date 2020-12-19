@@ -183,18 +183,18 @@ func (mr *MockUseCaseMockRecorder) FilterRecommended(params interface{}) *gomock
 }
 
 // FilterTagged mocks base method
-func (m *MockUseCase) FilterTagged(params FilterParams, tagId int) ([]models.Meeting, error) {
+func (m *MockUseCase) FilterTagged(params FilterParams, tags []string) ([]models.Meeting, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FilterTagged", params, tagId)
+	ret := m.ctrl.Call(m, "FilterTagged", params, tags)
 	ret0, _ := ret[0].([]models.Meeting)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FilterTagged indicates an expected call of FilterTagged
-func (mr *MockUseCaseMockRecorder) FilterTagged(params, tagId interface{}) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) FilterTagged(params, tags interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterTagged", reflect.TypeOf((*MockUseCase)(nil).FilterTagged), params, tagId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterTagged", reflect.TypeOf((*MockUseCase)(nil).FilterTagged), params, tags)
 }
 
 // FilterSimilar mocks base method
