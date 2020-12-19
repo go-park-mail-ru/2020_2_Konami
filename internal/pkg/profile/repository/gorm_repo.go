@@ -71,11 +71,16 @@ func (t *Subscription) TableName() string {
 	return "Subscriptions"
 }
 
-func (h *ProfileGormRepo) GetUserSubscriptionIds(userId int) ([]int, error) {
+func (h *ProfileGormRepo) GetUserSubscriptionIds(params profile.FilterParams) ([]int, error) {
 	var subs []Subscription
-	db := h.db.
-		Where("author_id = ?", userId).
-		Find(&subs)
+	db := h.db.Where("author_id = ?", params.ReqAuthorId)
+	if params.PrevId > 0 {
+		db = db.Where("target_id > ?", params.PrevId)
+	}
+	if params.CountLimit > 0 {
+		db = db.Limit(params.CountLimit)
+	}
+	db = db.Order("target_id ASC").Find(&subs)
 	err := db.Error
 	if err != nil {
 		return nil, err
@@ -87,8 +92,24 @@ func (h *ProfileGormRepo) GetUserSubscriptionIds(userId int) ([]int, error) {
 	return result, nil
 }
 
-func (h *ProfileGormRepo) GetUserSubscriptions(userId int) ([]models.ProfileCard, error) {
-	subs, err := h.GetUserSubscriptionIds(userId)
+func (h *ProfileGormRepo) CheckUserSubscription(authorId, targetId int) (bool, error) {
+	var subs Subscription
+	db := h.db.
+		Where("author_id = ?", authorId).
+		Where("target_id = ?", targetId).
+		First(&subs)
+	err := db.Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+func (h *ProfileGormRepo) GetUserSubscriptions(params profile.FilterParams) ([]models.ProfileCard, error) {
+	subs, err := h.GetUserSubscriptionIds(params)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +127,11 @@ func (h *ProfileGormRepo) GetUserSubscriptions(userId int) ([]models.ProfileCard
 		if err != nil {
 			return nil, err
 		}
-		result[i] = ToProfileCard(p)
+		result[i], err = h.ToProfileCard(p, -1)
+		if err != nil {
+			return nil, err
+		}
+		result[i].IsSubTarget = true
 	}
 	return result, nil
 }
@@ -211,7 +236,7 @@ func (h *ProfileGormRepo) GetOrCreateInterest(name string) (InterestTag, error) 
 	return result, nil
 }
 
-func ToProfileCard(obj Profile) models.ProfileCard {
+func (h *ProfileGormRepo) ToProfileCard(obj Profile, authorId int) (models.ProfileCard, error) {
 	p := models.ProfileCard{
 		Label: &models.ProfileLabel{
 			Id:     obj.Id,
@@ -228,11 +253,22 @@ func ToProfileCard(obj Profile) models.ProfileCard {
 	for i, val := range obj.SkillTags {
 		p.SkillTags[i] = val.Name
 	}
-	return p
+	if authorId == -1 {
+		return p, nil
+	}
+	isSubscribed, err := h.CheckUserSubscription(authorId, obj.Id)
+	if err != nil {
+		return models.ProfileCard{}, err
+	}
+	p.IsSubTarget = isSubscribed
+	return p, nil
 }
 
-func ToProfile(obj Profile) models.Profile {
-	card := ToProfileCard(obj)
+func (h *ProfileGormRepo) ToProfile(obj Profile, authorId int) (models.Profile, error) {
+	card, err := h.ToProfileCard(obj, authorId)
+	if err != nil {
+		return models.Profile{}, err
+	}
 	p := models.Profile{
 		Card:      &card,
 		Gender:    obj.Gender,
@@ -259,10 +295,10 @@ func ToProfile(obj Profile) models.Profile {
 		m := meetingRepo.ToMeetingLabel(val)
 		p.Meetings[i] = &m
 	}
-	return p
+	return p, nil
 }
 
-func ToDbObject(p models.Profile) (Profile, error) {
+func (h *ProfileGormRepo) ToDbObject(p models.Profile) (Profile, error) {
 	obj := Profile{
 		Id:        p.Card.Label.Id,
 		Name:      p.Card.Label.Name,
@@ -302,9 +338,16 @@ func ToDbObject(p models.Profile) (Profile, error) {
 	return obj, nil
 }
 
-func (h ProfileGormRepo) GetAll() ([]models.ProfileCard, error) {
+func (h ProfileGormRepo) GetAll(params profile.FilterParams) ([]models.ProfileCard, error) {
 	var profiles []Profile
-	db := h.db.
+	db := h.db
+	if params.PrevId > 0 {
+		db = db.Where("id > ?", params.PrevId)
+	}
+	if params.CountLimit > 0 {
+		db = db.Limit(params.CountLimit)
+	}
+	db = db.
 		Preload("MeetingTags").
 		Preload("InterestTags").
 		Preload("SkillTags").
@@ -316,15 +359,18 @@ func (h ProfileGormRepo) GetAll() ([]models.ProfileCard, error) {
 	}
 	result := make([]models.ProfileCard, len(profiles))
 	for i, el := range profiles {
-		result[i] = ToProfileCard(el)
+		result[i], err = h.ToProfileCard(el, params.ReqAuthorId)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return result, nil
+	return result, err
 }
 
-func (h ProfileGormRepo) GetProfile(userId int) (models.Profile, error) {
+func (h ProfileGormRepo) GetProfile(reqAuthorId, targetId int) (models.Profile, error) {
 	var p Profile
 	db := h.db.
-		Where("id = ?", userId).
+		Where("id = ?", targetId).
 		Preload("MeetingTags").
 		Preload("InterestTags").
 		Preload("SkillTags").
@@ -334,11 +380,11 @@ func (h ProfileGormRepo) GetProfile(userId int) (models.Profile, error) {
 	if err != nil {
 		return models.Profile{}, err
 	}
-	return ToProfile(p), nil
+	return h.ToProfile(p, reqAuthorId)
 }
 
 func (h ProfileGormRepo) EditProfile(update models.Profile) error {
-	updatedObj, err := ToDbObject(update)
+	updatedObj, err := h.ToDbObject(update)
 	if err != nil {
 		return err
 	}
@@ -393,7 +439,7 @@ func (h ProfileGormRepo) EditProfilePic(userId int, imgSrc string) error {
 }
 
 func (h ProfileGormRepo) Create(p models.Profile) (int, error) {
-	obj, err := ToDbObject(p)
+	obj, err := h.ToDbObject(p)
 	if err != nil {
 		return 0, err
 	}

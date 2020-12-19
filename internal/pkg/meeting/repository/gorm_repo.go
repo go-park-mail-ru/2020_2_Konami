@@ -364,7 +364,7 @@ func (h *MeetingGormRepo) GetTopMeetings(params meeting.FilterParams) ([]models.
 }
 
 func (h *MeetingGormRepo) FilterSubsLiked(params meeting.FilterParams) ([]models.Meeting, error) {
-	subs, err := h.profRepo.GetUserSubscriptionIds(params.UserId)
+	subs, err := h.profRepo.GetUserSubscriptionIds(profile.FilterParams{ReqAuthorId: params.UserId})
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +451,7 @@ func (h *MeetingGormRepo) FilterLikedTags(userId int) (map[int]bool, error) {
 }
 
 func (h *MeetingGormRepo) FilterSubsRegistered(params meeting.FilterParams) ([]models.Meeting, error) {
-	subs, err := h.profRepo.GetUserSubscriptionIds(params.UserId)
+	subs, err := h.profRepo.GetUserSubscriptionIds(profile.FilterParams{ReqAuthorId: params.UserId})
 	if err != nil {
 		return nil, err
 	}

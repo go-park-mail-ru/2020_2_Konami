@@ -29,7 +29,7 @@ func TestSessions(t *testing.T) {
 		p := profile.NewMockUseCase(ctrl)
 		testHandler.ProfileUC = p
 
-		p.EXPECT().GetAll().Return([]models.ProfileCard{}, nil)
+		p.EXPECT().GetAll(profile.FilterParams{ReqAuthorId: -1}).Return([]models.ProfileCard{}, nil)
 
 		apitest.New("Get-All-Ok").
 			Handler(handler).
@@ -52,7 +52,7 @@ func TestSessions(t *testing.T) {
 		p := profile.NewMockUseCase(ctrl)
 		testHandler.ProfileUC = p
 
-		p.EXPECT().GetAll().Return([]models.ProfileCard{}, errors.New("Error"))
+		p.EXPECT().GetAll(profile.FilterParams{ReqAuthorId: -1}).Return([]models.ProfileCard{}, errors.New("Error"))
 
 		apitest.New("Get-All-Bad").
 			Handler(handler).
@@ -222,7 +222,7 @@ func TestSessions(t *testing.T) {
 		p := profile.NewMockUseCase(ctrl)
 		testHandler.ProfileUC = p
 
-		p.EXPECT().GetProfile(4).Return(models.Profile{}, nil)
+		p.EXPECT().GetProfile(-1, 4).Return(models.Profile{}, nil)
 
 		apitest.New("Get-All-Ok").
 			Handler(handler).
@@ -265,7 +265,7 @@ func TestSessions(t *testing.T) {
 		p := profile.NewMockUseCase(ctrl)
 		testHandler.ProfileUC = p
 
-		p.EXPECT().GetProfile(4).Return(models.Profile{}, errors.New("Err"))
+		p.EXPECT().GetProfile(-1, 4).Return(models.Profile{}, errors.New("Err"))
 
 		apitest.New("Get-All-Ok").
 			Handler(handler).
@@ -537,7 +537,7 @@ func TestSessions(t *testing.T) {
 			End()
 	})
 
-/*	t.Run("LogIN", func(t *testing.T) {
+	/*	t.Run("LogIN", func(t *testing.T) {
 		var args []middleware.RouteArgs
 		handler := middleware.SetMuxVars(testHandler.LogIn, args)
 

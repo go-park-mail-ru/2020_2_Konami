@@ -8,13 +8,20 @@ import (
 
 var ErrUserNonExistent = errors.New("user non existent")
 
+type FilterParams struct {
+	PrevId      int
+	CountLimit  int
+	ReqAuthorId int
+}
+
 type Repository interface {
-	GetAll() ([]models.ProfileCard, error)
-	GetUserSubscriptionIds(userId int) ([]int, error)
-	GetUserSubscriptions(userId int) ([]models.ProfileCard, error)
+	GetAll(params FilterParams) ([]models.ProfileCard, error)
+	GetUserSubscriptionIds(params FilterParams) ([]int, error)
+	GetUserSubscriptions(params FilterParams) ([]models.ProfileCard, error)
+	CheckUserSubscription(authorId, targetId int) (bool, error)
 	CreateSubscription(authorId int, targetId int) (int, error)
 	RemoveSubscription(authorId int, targetId int) error
-	GetProfile(userId int) (models.Profile, error)
+	GetProfile(reqAuthorId, userId int) (models.Profile, error)
 	EditProfile(update models.Profile) error
 	EditProfilePic(userId int, imgSrc string) error
 	Create(p models.Profile) (userId int, err error)

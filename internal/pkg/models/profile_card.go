@@ -5,4 +5,5 @@ type ProfileCard struct {
 	Job          string        `json:"job"`
 	InterestTags []string      `json:"interestTags"`
 	SkillTags    []string      `json:"skillTags"`
+	IsSubTarget  bool          `json:"isSubTarget"`
 }

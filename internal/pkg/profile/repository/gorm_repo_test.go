@@ -45,7 +45,7 @@ func (s *Suite) TestGetAll() {
 	s.mock.ExpectQuery("SELECT").
 		WillReturnRows(sqlmock.NewRows([]string{}))
 
-	_, err := s.repository.GetAll()
+	_, err := s.repository.GetAll(profile.FilterParams{})
 
 	require.NoError(s.T(), err)
 }
@@ -54,7 +54,7 @@ func (s *Suite) TestGetAllError() {
 	s.mock.ExpectQuery("SELECT").
 		WillReturnError(s.bdError)
 
-	_, err := s.repository.GetAll()
+	_, err := s.repository.GetAll(profile.FilterParams{})
 
 	require.Error(s.T(), err)
 	require.Equal(s.T(), err, s.bdError)
@@ -169,7 +169,7 @@ func (s *Suite) TestGetProfile() {
 	s.mock.ExpectQuery("SELECT").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
-	_, err := s.repository.GetProfile(1337)
+	_, err := s.repository.GetProfile(-1, 1337)
 
 	require.NoError(s.T(), err)
 }

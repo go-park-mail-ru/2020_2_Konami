@@ -57,7 +57,6 @@ func TestTag(t *testing.T) {
 		})
 	})
 
-
 	t.Run("TestValidateProfileErrorWrongHash", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -120,7 +119,7 @@ func TestTag(t *testing.T) {
 			Meetings:    nil,
 		}
 
-		proRepo.EXPECT().GetProfile(1).Return(testProfile, nil)
+		proRepo.EXPECT().GetProfile(-1, 1).Return(testProfile, nil)
 		proRepo.EXPECT().EditProfile(testProfile).Return(nil)
 
 		_ = p.EditProfile(1, models.ProfileUpdate{
@@ -166,7 +165,7 @@ func TestTag(t *testing.T) {
 			Meetings:    nil,
 		}
 
-		proRepo.EXPECT().GetProfile(1).Return(testProfile, nil)
+		proRepo.EXPECT().GetProfile(-1, 1).Return(testProfile, nil)
 		testProfile.Birthday = "M"
 		testProfile.Gender = "M"
 		testProfile.City = "M"
@@ -206,14 +205,14 @@ func TestTag(t *testing.T) {
 		p := NewProfileUseCase(proRepo, uploadsHandler, tagRepo, "", "")
 
 		proRepo.EXPECT().
-			GetAll().
+			GetAll(profile.FilterParams{}).
 			Return([]models.ProfileCard{}, nil)
 
 		proRepo.EXPECT().
-			GetProfile(1).
+			GetProfile(-1, 1).
 			Return(models.Profile{}, nil)
 
-		_, _ = p.GetAll()
-		_, _ = p.GetProfile(1)
+		_, _ = p.GetAll(profile.FilterParams{})
+		_, _ = p.GetProfile(-1, 1)
 	})
 }

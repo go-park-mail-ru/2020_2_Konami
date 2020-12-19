@@ -35,33 +35,33 @@ func (m *MockUseCase) EXPECT() *MockUseCaseMockRecorder {
 }
 
 // GetAll mocks base method
-func (m *MockUseCase) GetAll() ([]models.ProfileCard, error) {
+func (m *MockUseCase) GetAll(params FilterParams) ([]models.ProfileCard, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAll")
+	ret := m.ctrl.Call(m, "GetAll", params)
 	ret0, _ := ret[0].([]models.ProfileCard)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAll indicates an expected call of GetAll
-func (mr *MockUseCaseMockRecorder) GetAll() *gomock.Call {
+func (mr *MockUseCaseMockRecorder) GetAll(params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockUseCase)(nil).GetAll))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockUseCase)(nil).GetAll), params)
 }
 
 // GetUserSubscriptions mocks base method
-func (m *MockUseCase) GetUserSubscriptions(userId int) ([]models.ProfileCard, error) {
+func (m *MockUseCase) GetUserSubscriptions(params FilterParams) ([]models.ProfileCard, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetUserSubscriptions", userId)
+	ret := m.ctrl.Call(m, "GetUserSubscriptions", params)
 	ret0, _ := ret[0].([]models.ProfileCard)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetUserSubscriptions indicates an expected call of GetUserSubscriptions
-func (mr *MockUseCaseMockRecorder) GetUserSubscriptions(userId interface{}) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) GetUserSubscriptions(params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSubscriptions", reflect.TypeOf((*MockUseCase)(nil).GetUserSubscriptions), userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSubscriptions", reflect.TypeOf((*MockUseCase)(nil).GetUserSubscriptions), params)
 }
 
 // CreateSubscription mocks base method
@@ -94,18 +94,18 @@ func (mr *MockUseCaseMockRecorder) RemoveSubscription(authorId, targetId interfa
 }
 
 // GetProfile mocks base method
-func (m *MockUseCase) GetProfile(userId int) (models.Profile, error) {
+func (m *MockUseCase) GetProfile(reqAuthorId, userId int) (models.Profile, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProfile", userId)
+	ret := m.ctrl.Call(m, "GetProfile", reqAuthorId, userId)
 	ret0, _ := ret[0].(models.Profile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetProfile indicates an expected call of GetProfile
-func (mr *MockUseCaseMockRecorder) GetProfile(userId interface{}) *gomock.Call {
+func (mr *MockUseCaseMockRecorder) GetProfile(reqAuthorId, userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProfile", reflect.TypeOf((*MockUseCase)(nil).GetProfile), userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProfile", reflect.TypeOf((*MockUseCase)(nil).GetProfile), reqAuthorId, userId)
 }
 
 // EditProfile mocks base method
