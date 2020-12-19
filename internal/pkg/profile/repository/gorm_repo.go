@@ -74,7 +74,7 @@ func (t *Subscription) TableName() string {
 func (h *ProfileGormRepo) GetUserSubscriptionIds(userId int) ([]int, error) {
 	var subs []Subscription
 	db := h.db.
-		Where("AuthorId = ?", userId).
+		Where("author_id = ?", userId).
 		Find(&subs)
 	err := db.Error
 	if err != nil {
@@ -137,8 +137,8 @@ func (h *ProfileGormRepo) CreateSubscription(authorId int, targetId int) (int, e
 
 func (h *ProfileGormRepo) RemoveSubscription(authorId int, targetId int) error {
 	db := h.db.
-		Where("AuthorId = ?", authorId).
-		Where("TargetId = ?", targetId).
+		Where("author_id = ?", authorId).
+		Where("target_id = ?", targetId).
 		Delete(&Subscription{})
 	return db.Error
 }
