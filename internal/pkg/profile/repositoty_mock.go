@@ -48,6 +48,21 @@ func (mr *MockRepositoryMockRecorder) GetAll() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockRepository)(nil).GetAll))
 }
 
+// GetUserSubscriptionIds mocks base method
+func (m *MockRepository) GetUserSubscriptionIds(userId int) ([]int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserSubscriptionIds", userId)
+	ret0, _ := ret[0].([]int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserSubscriptionIds indicates an expected call of GetUserSubscriptionIds
+func (mr *MockRepositoryMockRecorder) GetUserSubscriptionIds(userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSubscriptionIds", reflect.TypeOf((*MockRepository)(nil).GetUserSubscriptionIds), userId)
+}
+
 // GetUserSubscriptions mocks base method
 func (m *MockRepository) GetUserSubscriptions(userId int) ([]models.ProfileCard, error) {
 	m.ctrl.T.Helper()

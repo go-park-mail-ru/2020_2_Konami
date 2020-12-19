@@ -10,6 +10,7 @@ var ErrUserNonExistent = errors.New("user non existent")
 
 type Repository interface {
 	GetAll() ([]models.ProfileCard, error)
+	GetUserSubscriptionIds(userId int) ([]int, error)
 	GetUserSubscriptions(userId int) ([]models.ProfileCard, error)
 	CreateSubscription(authorId int, targetId int) (int, error)
 	RemoveSubscription(authorId int, targetId int) error

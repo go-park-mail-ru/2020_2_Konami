@@ -178,6 +178,21 @@ func (mr *MockRepositoryMockRecorder) FilterLiked(params interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterLiked", reflect.TypeOf((*MockRepository)(nil).FilterLiked), params)
 }
 
+// FilterSubsLiked mocks base method
+func (m *MockRepository) FilterSubsLiked(params FilterParams) ([]models.Meeting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FilterSubsLiked", params)
+	ret0, _ := ret[0].([]models.Meeting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FilterSubsLiked indicates an expected call of FilterSubsLiked
+func (mr *MockRepositoryMockRecorder) FilterSubsLiked(params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterSubsLiked", reflect.TypeOf((*MockRepository)(nil).FilterSubsLiked), params)
+}
+
 // FilterRegistered mocks base method
 func (m *MockRepository) FilterRegistered(params FilterParams) ([]models.Meeting, error) {
 	m.ctrl.T.Helper()
@@ -191,6 +206,21 @@ func (m *MockRepository) FilterRegistered(params FilterParams) ([]models.Meeting
 func (mr *MockRepositoryMockRecorder) FilterRegistered(params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterRegistered", reflect.TypeOf((*MockRepository)(nil).FilterRegistered), params)
+}
+
+// FilterSubsRegistered mocks base method
+func (m *MockRepository) FilterSubsRegistered(params FilterParams) ([]models.Meeting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FilterSubsRegistered", params)
+	ret0, _ := ret[0].([]models.Meeting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FilterSubsRegistered indicates an expected call of FilterSubsRegistered
+func (mr *MockRepositoryMockRecorder) FilterSubsRegistered(params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterSubsRegistered", reflect.TypeOf((*MockRepository)(nil).FilterSubsRegistered), params)
 }
 
 // FilterRecommended mocks base method

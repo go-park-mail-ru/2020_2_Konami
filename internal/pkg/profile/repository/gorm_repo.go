@@ -71,7 +71,7 @@ func (t *Subscription) TableName() string {
 	return "Subscriptions"
 }
 
-func (h *ProfileGormRepo) GetUserSubscriptions(userId int) ([]models.ProfileCard, error) {
+func (h *ProfileGormRepo) GetUserSubscriptionIds(userId int) ([]int, error) {
 	var subs []Subscription
 	db := h.db.
 		Where("AuthorId = ?", userId).
@@ -80,11 +80,23 @@ func (h *ProfileGormRepo) GetUserSubscriptions(userId int) ([]models.ProfileCard
 	if err != nil {
 		return nil, err
 	}
+	result := make([]int, len(subs))
+	for i, sub := range subs {
+		result[i] = sub.TargetId
+	}
+	return result, nil
+}
+
+func (h *ProfileGormRepo) GetUserSubscriptions(userId int) ([]models.ProfileCard, error) {
+	subs, err := h.GetUserSubscriptionIds(userId)
+	if err != nil {
+		return nil, err
+	}
 	result := make([]models.ProfileCard, len(subs))
 	for i, sub := range subs {
 		var p Profile
 		db := h.db.
-			Where("id = ?", sub.TargetId).
+			Where("id = ?", sub).
 			Preload("MeetingTags").
 			Preload("InterestTags").
 			Preload("SkillTags").

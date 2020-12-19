@@ -177,6 +177,14 @@ func (uc *MeetingUseCase) FilterRegistered(params meeting.FilterParams) ([]model
 	return uc.MeetRepo.FilterRegistered(params)
 }
 
+func (uc *MeetingUseCase) FilterSubsLiked(params meeting.FilterParams) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterSubsLiked(params)
+}
+
+func (uc *MeetingUseCase) FilterSubsRegistered(params meeting.FilterParams) ([]models.Meeting, error) {
+	return uc.MeetRepo.FilterSubsRegistered(params)
+}
+
 func (uc *MeetingUseCase) FilterRecommended(params meeting.FilterParams) ([]models.Meeting, error) {
 	return uc.MeetRepo.FilterRecommended(params)
 }

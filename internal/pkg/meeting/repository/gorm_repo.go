@@ -363,6 +363,30 @@ func (h *MeetingGormRepo) GetTopMeetings(params meeting.FilterParams) ([]models.
 	return h.ToMeetingList(meetings, params.UserId)
 }
 
+func (h *MeetingGormRepo) FilterSubsLiked(params meeting.FilterParams) ([]models.Meeting, error) {
+	subs, err := h.profRepo.GetUserSubscriptionIds(params.UserId)
+	if err != nil {
+		return nil, err
+	}
+	meetMap := make(map[int]*models.Meeting)
+	for _, sub := range subs {
+		params.UserId = sub
+		subLiked, err := h.FilterLiked(params)
+		if err != nil {
+			return nil, err
+		}
+		params.CountLimit -= len(subLiked)
+		for _, meet := range subLiked {
+			meetMap[meet.Card.Label.Id] = &meet
+		}
+	}
+	result := []models.Meeting{}
+	for _, meetPtr := range meetMap {
+		result = append(result, *meetPtr)
+	}
+	return result, nil
+}
+
 func (h *MeetingGormRepo) FilterLiked(params meeting.FilterParams) ([]models.Meeting, error) {
 	var likes []Like
 	db := h.db.
@@ -422,6 +446,30 @@ func (h *MeetingGormRepo) FilterLikedTags(userId int) (map[int]bool, error) {
 		for _, t := range m.Tags {
 			result[t.Id] = true
 		}
+	}
+	return result, nil
+}
+
+func (h *MeetingGormRepo) FilterSubsRegistered(params meeting.FilterParams) ([]models.Meeting, error) {
+	subs, err := h.profRepo.GetUserSubscriptionIds(params.UserId)
+	if err != nil {
+		return nil, err
+	}
+	meetMap := make(map[int]*models.Meeting)
+	for _, sub := range subs {
+		params.UserId = sub
+		subLiked, err := h.FilterRegistered(params)
+		if err != nil {
+			return nil, err
+		}
+		params.CountLimit -= len(subLiked)
+		for _, meet := range subLiked {
+			meetMap[meet.Card.Label.Id] = &meet
+		}
+	}
+	result := []models.Meeting{}
+	for _, meetPtr := range meetMap {
+		result = append(result, *meetPtr)
 	}
 	return result, nil
 }

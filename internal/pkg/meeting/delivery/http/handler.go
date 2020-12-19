@@ -78,6 +78,22 @@ func (h *MeetingHandler) GetUserMeetingsList(w http.ResponseWriter, r *http.Requ
 	hu.WriteJson(w, meets)
 }
 
+func (h *MeetingHandler) GetSubsMeetingsList(w http.ResponseWriter, r *http.Request) {
+	params := GetQueryParams(r)
+	if params.UserId == -1 {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	var meets []models.Meeting
+	var err error
+	meets, err = h.MeetingUC.FilterSubsRegistered(params)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	hu.WriteJson(w, meets)
+}
+
 func (h *MeetingHandler) GetFavMeetingsList(w http.ResponseWriter, r *http.Request) {
 	params := GetQueryParams(r)
 	if params.UserId == -1 {
@@ -87,6 +103,22 @@ func (h *MeetingHandler) GetFavMeetingsList(w http.ResponseWriter, r *http.Reque
 	var meets []models.Meeting
 	var err error
 	meets, err = h.MeetingUC.FilterLiked(params)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	hu.WriteJson(w, meets)
+}
+
+func (h *MeetingHandler) GetSubsFavMeetingsList(w http.ResponseWriter, r *http.Request) {
+	params := GetQueryParams(r)
+	if params.UserId == -1 {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	var meets []models.Meeting
+	var err error
+	meets, err = h.MeetingUC.FilterSubsLiked(params)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return
