@@ -49,6 +49,50 @@ func (mr *MockUseCaseMockRecorder) GetAll() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockUseCase)(nil).GetAll))
 }
 
+// GetUserSubscriptions mocks base method
+func (m *MockUseCase) GetUserSubscriptions(userId int) ([]models.ProfileCard, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserSubscriptions", userId)
+	ret0, _ := ret[0].([]models.ProfileCard)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserSubscriptions indicates an expected call of GetUserSubscriptions
+func (mr *MockUseCaseMockRecorder) GetUserSubscriptions(userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSubscriptions", reflect.TypeOf((*MockUseCase)(nil).GetUserSubscriptions), userId)
+}
+
+// CreateSubscription mocks base method
+func (m *MockUseCase) CreateSubscription(authorId, targetId int) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSubscription", authorId, targetId)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSubscription indicates an expected call of CreateSubscription
+func (mr *MockUseCaseMockRecorder) CreateSubscription(authorId, targetId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSubscription", reflect.TypeOf((*MockUseCase)(nil).CreateSubscription), authorId, targetId)
+}
+
+// RemoveSubscription mocks base method
+func (m *MockUseCase) RemoveSubscription(authorId, targetId int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveSubscription", authorId, targetId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveSubscription indicates an expected call of RemoveSubscription
+func (mr *MockUseCaseMockRecorder) RemoveSubscription(authorId, targetId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveSubscription", reflect.TypeOf((*MockUseCase)(nil).RemoveSubscription), authorId, targetId)
+}
+
 // GetProfile mocks base method
 func (m *MockUseCase) GetProfile(userId int) (models.Profile, error) {
 	m.ctrl.T.Helper()

@@ -48,6 +48,50 @@ func (mr *MockRepositoryMockRecorder) GetAll() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAll", reflect.TypeOf((*MockRepository)(nil).GetAll))
 }
 
+// GetUserSubscriptions mocks base method
+func (m *MockRepository) GetUserSubscriptions(userId int) ([]models.ProfileCard, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUserSubscriptions", userId)
+	ret0, _ := ret[0].([]models.ProfileCard)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUserSubscriptions indicates an expected call of GetUserSubscriptions
+func (mr *MockRepositoryMockRecorder) GetUserSubscriptions(userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserSubscriptions", reflect.TypeOf((*MockRepository)(nil).GetUserSubscriptions), userId)
+}
+
+// CreateSubscription mocks base method
+func (m *MockRepository) CreateSubscription(authorId, targetId int) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSubscription", authorId, targetId)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSubscription indicates an expected call of CreateSubscription
+func (mr *MockRepositoryMockRecorder) CreateSubscription(authorId, targetId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSubscription", reflect.TypeOf((*MockRepository)(nil).CreateSubscription), authorId, targetId)
+}
+
+// RemoveSubscription mocks base method
+func (m *MockRepository) RemoveSubscription(authorId, targetId int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveSubscription", authorId, targetId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveSubscription indicates an expected call of RemoveSubscription
+func (mr *MockRepositoryMockRecorder) RemoveSubscription(authorId, targetId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveSubscription", reflect.TypeOf((*MockRepository)(nil).RemoveSubscription), authorId, targetId)
+}
+
 // GetProfile mocks base method
 func (m *MockRepository) GetProfile(userId int) (models.Profile, error) {
 	m.ctrl.T.Helper()
@@ -137,17 +181,17 @@ func (mr *MockRepositoryMockRecorder) GetLabel(userId interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLabel", reflect.TypeOf((*MockRepository)(nil).GetLabel), userId)
 }
 
-// GetSubscriptions mocks base method
-func (m *MockRepository) GetSubscriptions(userId int) ([]int, error) {
+// GetTagSubscriptions mocks base method
+func (m *MockRepository) GetTagSubscriptions(userId int) ([]int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSubscriptions", userId)
+	ret := m.ctrl.Call(m, "GetTagSubscriptions", userId)
 	ret0, _ := ret[0].([]int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetSubscriptions indicates an expected call of GetSubscriptions
-func (mr *MockRepositoryMockRecorder) GetSubscriptions(userId interface{}) *gomock.Call {
+// GetTagSubscriptions indicates an expected call of GetTagSubscriptions
+func (mr *MockRepositoryMockRecorder) GetTagSubscriptions(userId interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubscriptions", reflect.TypeOf((*MockRepository)(nil).GetSubscriptions), userId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTagSubscriptions", reflect.TypeOf((*MockRepository)(nil).GetTagSubscriptions), userId)
 }

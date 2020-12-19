@@ -483,7 +483,7 @@ func (h *MeetingGormRepo) ExtractMeetingsFromRows(params meeting.FilterParams, r
 }
 
 func (h *MeetingGormRepo) FilterRecommended(params meeting.FilterParams) ([]models.Meeting, error) {
-	subscriptions, err := h.profRepo.GetSubscriptions(params.UserId)
+	subscriptions, err := h.profRepo.GetTagSubscriptions(params.UserId)
 	if err != nil {
 		return nil, err
 	}

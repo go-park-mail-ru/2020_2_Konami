@@ -158,6 +158,82 @@ func (h *ProfileHandler) GetPeople(w http.ResponseWriter, _ *http.Request) {
 	hu.WriteJson(w, users)
 }
 
+func (h *ProfileHandler) GetUserSubscriptions(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	users, err := h.ProfileUC.GetUserSubscriptions(userId)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusNotFound})
+		return
+	}
+	hu.WriteJson(w, users)
+}
+
+func (h *ProfileHandler) CreateUserSubscription(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	tokenValid, ok := r.Context().Value(middleware.CSRFValid).(bool)
+	if !ok || !tokenValid {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized, ErrMsg: "Invalid CSRF token"})
+		return
+	}
+	sub := &models.UserSubscription{}
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(r.Body)
+	if err == nil {
+		err = sub.UnmarshalJSON(buf.Bytes())
+	}
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	_, err = h.ProfileUC.CreateSubscription(userId, sub.TargetId)
+	if err == profile.ErrUserNonExistent {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *ProfileHandler) RemoveUserSubscription(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	tokenValid, ok := r.Context().Value(middleware.CSRFValid).(bool)
+	if !ok || !tokenValid {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized, ErrMsg: "Invalid CSRF token"})
+		return
+	}
+	sub := &models.UserSubscription{}
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(r.Body)
+	if err == nil {
+		err = sub.UnmarshalJSON(buf.Bytes())
+	}
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	err = h.ProfileUC.RemoveSubscription(userId, sub.TargetId)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func (h *ProfileHandler) EditUser(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value(middleware.UserID).(int)
 	if !ok {

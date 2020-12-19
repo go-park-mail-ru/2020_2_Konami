@@ -87,6 +87,10 @@ func InitRouter(
 	rApi := mux.NewRouter()
 	r.PathPrefix("/api/").Handler(http.StripPrefix("/api", rApi))
 	rApi.HandleFunc("/people", profile.GetPeople).Methods("GET")
+	rApi.HandleFunc("/subscriptions", profile.GetUserSubscriptions).Methods("GET")
+	rApi.HandleFunc("/subscribe", profile.CreateUserSubscription).Methods("POST")
+	rApi.HandleFunc("/unsubscribe", profile.RemoveUserSubscription).Methods("DELETE")
+
 	rApi.HandleFunc("/user", profile.GetUser).Methods("GET")
 	rApi.HandleFunc("/signup", profile.SignUp).Methods("POST")
 	rApi.HandleFunc("/login", profile.LogIn).Methods("POST")
@@ -238,6 +242,7 @@ func Migrate() {
 		&profileRepoPkg.SkillTag{},
 		&profileRepoPkg.InterestTag{},
 		&profileRepoPkg.Profile{},
+		&profileRepoPkg.Subscription{},
 		&meetingRepoPkg.Registration{},
 		&meetingRepoPkg.Like{},
 		&meetingRepoPkg.Meeting{},
@@ -296,4 +301,5 @@ func Truncate() {
 	db.Exec("DELETE FROM messages")
 	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.InterestTag{})
 	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.SkillTag{})
+	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.Subscription{})
 }

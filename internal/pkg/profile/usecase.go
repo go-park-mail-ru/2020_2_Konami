@@ -11,6 +11,9 @@ var ErrInvalidCredentials = errors.New("invalid credentials")
 
 type UseCase interface {
 	GetAll() ([]models.ProfileCard, error)
+	GetUserSubscriptions(userId int) ([]models.ProfileCard, error)
+	CreateSubscription(authorId int, targetId int) (int, error)
+	RemoveSubscription(authorId int, targetId int) error
 	GetProfile(userId int) (models.Profile, error)
 	EditProfile(userId int, update models.ProfileUpdate) error
 	UploadProfilePic(userId int, filename string, img io.Reader) error

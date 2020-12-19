@@ -15,6 +15,7 @@ jobs:
           workdir: ./
   test:
     name: tests
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - name: Install Go
@@ -27,6 +28,7 @@ jobs:
         run: go test -coverprofile=coverage1.out -coverpkg=./... -cover ./... && cat coverage1.out | grep -v easyjson | grep -v mock | grep -v server | grep -v proto | grep -v csrf_dispatcher > cover.out && go tool cover -func=cover.out
   deploy:
     if: github.ref == 'refs/heads/deploy'
+    needs: test
     runs-on: ubuntu-latest
     container:
       image: kroniak/ssh-client

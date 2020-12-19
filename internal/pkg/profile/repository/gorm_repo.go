@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	meetingRepo "konami_backend/internal/pkg/meeting/repository"
@@ -60,6 +61,76 @@ func (t *SkillTag) TableName() string {
 	return "SkillTags"
 }
 
+type Subscription struct {
+	Id       int `gorm:"primaryKey;autoIncrement;"`
+	AuthorId int
+	TargetId int
+}
+
+func (t *Subscription) TableName() string {
+	return "Subscriptions"
+}
+
+func (h *ProfileGormRepo) GetUserSubscriptions(userId int) ([]models.ProfileCard, error) {
+	var subs []Subscription
+	db := h.db.
+		Where("AuthorId = ?", userId).
+		Find(&subs)
+	err := db.Error
+	if err != nil {
+		return nil, err
+	}
+	result := make([]models.ProfileCard, len(subs))
+	for i, sub := range subs {
+		var p Profile
+		db := h.db.
+			Where("id = ?", sub.TargetId).
+			Preload("MeetingTags").
+			Preload("InterestTags").
+			Preload("SkillTags").
+			Preload("Meetings").
+			First(&p)
+		err := db.Error
+		if err != nil {
+			return nil, err
+		}
+		result[i] = ToProfileCard(p)
+	}
+	return result, nil
+}
+
+func (h *ProfileGormRepo) CreateSubscription(authorId int, targetId int) (int, error) {
+	var p Profile
+	db := h.db.
+		Where("id = ?", targetId).
+		First(&p)
+	err := db.Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return -1, profile.ErrUserNonExistent
+	}
+	if err != nil {
+		return -1, db.Error
+	}
+	s := Subscription{
+		AuthorId: authorId,
+		TargetId: targetId,
+	}
+	db = h.db.Create(&s)
+	err = db.Error
+	if err != nil {
+		return -1, err
+	}
+	return s.Id, nil
+}
+
+func (h *ProfileGormRepo) RemoveSubscription(authorId int, targetId int) error {
+	db := h.db.
+		Where("AuthorId = ?", authorId).
+		Where("TargetId = ?", targetId).
+		Delete(&Subscription{})
+	return db.Error
+}
+
 func (h *ProfileGormRepo) GetSkillByName(name string) (SkillTag, error) {
 	var res SkillTag
 	db := h.db.
@@ -67,7 +138,7 @@ func (h *ProfileGormRepo) GetSkillByName(name string) (SkillTag, error) {
 		First(&res)
 
 	err := db.Error
-	if db.Error != nil {
+	if err != nil {
 		return SkillTag{}, err
 	}
 	return SkillTag{Id: res.Id, Name: res.Name}, nil
@@ -349,7 +420,7 @@ func (h *ProfileGormRepo) GetLabel(userId int) (models.ProfileLabel, error) {
 	}, nil
 }
 
-func (h *ProfileGormRepo) GetSubscriptions(userId int) (tagIds []int, err error) {
+func (h *ProfileGormRepo) GetTagSubscriptions(userId int) (tagIds []int, err error) {
 	var userProfile Profile
 	db := h.db.
 		Where("id = ?", userId).

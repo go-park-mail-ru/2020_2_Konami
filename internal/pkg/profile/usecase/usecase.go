@@ -65,6 +65,18 @@ func (h ProfileUseCase) GetAll() ([]models.ProfileCard, error) {
 	return h.ProfileRepo.GetAll()
 }
 
+func (h ProfileUseCase) GetUserSubscriptions(userId int) ([]models.ProfileCard, error) {
+	return h.ProfileRepo.GetUserSubscriptions(userId)
+}
+
+func (h ProfileUseCase) CreateSubscription(authorId int, targetId int) (int, error) {
+	return h.ProfileRepo.CreateSubscription(authorId, targetId)
+}
+
+func (h ProfileUseCase) RemoveSubscription(authorId int, targetId int) error {
+	return h.ProfileRepo.RemoveSubscription(authorId, targetId)
+}
+
 func (h ProfileUseCase) GetProfile(userId int) (models.Profile, error) {
 	return h.ProfileRepo.GetProfile(userId)
 }

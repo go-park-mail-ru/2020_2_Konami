@@ -14,14 +14,14 @@ import (
 
 type Suite struct {
 	suite.Suite
-	DB   *gorm.DB
-	mock sqlmock.Sqlmock
+	DB         *gorm.DB
+	mock       sqlmock.Sqlmock
 	repository profile.Repository
-	bdError error
+	bdError    error
 }
 
 func (s *Suite) SetupSuite() {
-	var db  *sql.DB
+	var db *sql.DB
 	var err error
 
 	db, s.mock, err = sqlmock.New()
@@ -87,7 +87,7 @@ func (s *Suite) TestGetSub() {
 	s.mock.ExpectQuery("SELECT").
 		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
-	_, err := s.repository.GetSubscriptions(1)
+	_, err := s.repository.GetTagSubscriptions(1)
 
 	require.NoError(s.T(), err)
 }
@@ -122,20 +122,19 @@ func (s *Suite) TestGetCredError() {
 	require.Equal(s.T(), err, s.bdError)
 }
 
-
 func (s *Suite) TestEditPhoto() {
-/*	s.mock.ExpectQuery("SELECT").
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	/*	s.mock.ExpectQuery("SELECT").
+			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
 
-	s.mock.ExpectQuery("UPDATE").
-		WithArgs(1,"","PICTURE","","0001-01-01 00:00:00 +0000 UTC","","","","","","","","","","",1)
-	s.mock.ExpectCommit()
+		s.mock.ExpectQuery("UPDATE").
+			WithArgs(1,"","PICTURE","","0001-01-01 00:00:00 +0000 UTC","","","","","","","","","","",1)
+		s.mock.ExpectCommit()
 
-	err := s.repository.EditProfilePic(1, "PICTURE")
+		err := s.repository.EditProfilePic(1, "PICTURE")
 
-	require.NoError(s.T(), err)
-*/}
-
+		require.NoError(s.T(), err)
+	*/
+}
 
 func (s *Suite) AfterTest(_, _ string) {
 	require.NoError(s.T(), s.mock.ExpectationsWereMet())
@@ -175,65 +174,64 @@ func (s *Suite) TestGetProfile() {
 	require.NoError(s.T(), err)
 }
 
-
 func (s *Suite) TestCreateProfile() {
-/*	testTags := []*models.Tag{
-		{
+	/*	testTags := []*models.Tag{
+			{
 
-		},
-	}
-
-	testMeeting := []*models.MeetingLabel{
-		{
-			Id:    1,
-			Title: "gg",
-			Cover: "gg",
-		},
-	}
-
-	gg := models.Profile{
-		Card:        &models.ProfileCard{
-			Label:        &models.ProfileLabel{
-				Id:     0,
-				Name:   "",
-				ImgSrc: "",
 			},
-			Job:          "",
-			InterestTags: nil,
-			SkillTags:    nil,
-		},
-		Gender:      "",
-		Birthday:    "",
-		City:        "",
-		Login:       "",
-		PwdHash:     "",
-		Telegram:    "",
-		Vk:          "",
-		Education:   "",
-		MeetingTags: testTags,
-		Aims:        "",
-		Interests:   "",
-		Skills:      "",
-		Meetings:    testMeeting,
-	}
+		}
 
-	s.mock.ExpectBegin()
-	s.mock.ExpectQuery("INSERT INTO").
-		WillReturnRows(sqlmock.NewRows([]string{""}).AddRow(1))
+		testMeeting := []*models.MeetingLabel{
+			{
+				Id:    1,
+				Title: "gg",
+				Cover: "gg",
+			},
+		}
 
-	s.mock.ExpectQuery("INSERT INTO").
-		WillReturnRows(sqlmock.NewRows([]string{""}).AddRow(1))
+		gg := models.Profile{
+			Card:        &models.ProfileCard{
+				Label:        &models.ProfileLabel{
+					Id:     0,
+					Name:   "",
+					ImgSrc: "",
+				},
+				Job:          "",
+				InterestTags: nil,
+				SkillTags:    nil,
+			},
+			Gender:      "",
+			Birthday:    "",
+			City:        "",
+			Login:       "",
+			PwdHash:     "",
+			Telegram:    "",
+			Vk:          "",
+			Education:   "",
+			MeetingTags: testTags,
+			Aims:        "",
+			Interests:   "",
+			Skills:      "",
+			Meetings:    testMeeting,
+		}
 
-	s.mock.ExpectQuery("INSERT INTO").
-		WillReturnRows(sqlmock.NewRows([]string{""}).AddRow(1))
+		s.mock.ExpectBegin()
+		s.mock.ExpectQuery("INSERT INTO").
+			WillReturnRows(sqlmock.NewRows([]string{""}).AddRow(1))
+
+		s.mock.ExpectQuery("INSERT INTO").
+			WillReturnRows(sqlmock.NewRows([]string{""}).AddRow(1))
+
+		s.mock.ExpectQuery("INSERT INTO").
+			WillReturnRows(sqlmock.NewRows([]string{""}).AddRow(1))
 
 
-	s.mock.ExpectCommit()
+		s.mock.ExpectCommit()
 
 
-	_, err := s.repository.Create(gg)
+		_, err := s.repository.Create(gg)
 
-	require.NoError(s.T(), err)*/
+		require.NoError(s.T(), err)*/
 }
 
 /*
