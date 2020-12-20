@@ -344,6 +344,8 @@ func (h ProfileGormRepo) GetAll(params profile.FilterParams) ([]models.ProfileCa
 	if params.PrevId > 0 {
 		db = db.Where("id > ?", params.PrevId)
 	}
+	db = db.Order("id ASC")
+
 	if params.CountLimit > 0 {
 		db = db.Limit(params.CountLimit)
 	}
