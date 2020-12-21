@@ -344,9 +344,10 @@ func (h *MeetingGormRepo) UpdateMeeting(update models.MeetingCard) error {
 
 func (h *MeetingGormRepo) GetNextMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
 	var meetings []Meeting
-	dtStr := params.PrevStart.Add(time.Millisecond).Format("2006-01-02T15:04:05.000Z0700")
+	dtStr := params.PrevStart.Format("2006-01-02T15:04:05.000Z0700")
 	db := h.FilterQuery(params).
-		Where("start_date > ?::timestamp OR (start_date = ?::timestamp AND Id > ?)", dtStr, dtStr, params.PrevId).
+		Where("start_date > ?::timestamptz OR (start_date = ?::timestamptz AND Id > ?)",
+			dtStr, dtStr, params.PrevId).
 		Order("Start_Date ASC").Order("Id ASC").Find(&meetings)
 	err := db.Error
 	if err != nil {
