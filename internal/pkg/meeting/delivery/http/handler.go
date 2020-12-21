@@ -21,6 +21,7 @@ type MeetingHandler struct {
 }
 
 const DefCountLimit = 10
+const MaxLikes = int(^uint(0) >> 1)
 
 func GetQueryParams(r *http.Request) meeting.FilterParams {
 	var res meeting.FilterParams
@@ -41,6 +42,15 @@ func GetQueryParams(r *http.Request) meeting.FilterParams {
 	res.CountLimit, err = strconv.Atoi(r.URL.Query().Get("limit"))
 	if err != nil || res.CountLimit <= 0 {
 		res.CountLimit = DefCountLimit
+	}
+	res.PrevLikes, err = strconv.Atoi(r.URL.Query().Get("prevLikes"))
+	if err != nil {
+		res.PrevLikes = MaxLikes
+	}
+	layout = "2006-01-02T15:04:05.000Z0700"
+	res.PrevStart, err = time.Parse(layout, r.URL.Query().Get("prevStart"))
+	if err != nil {
+		res.PrevStart = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 	}
 	var ok bool
 	res.UserId, ok = r.Context().Value(middleware.UserID).(int)

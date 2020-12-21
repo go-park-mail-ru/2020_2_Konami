@@ -286,7 +286,6 @@ func (h *MeetingGormRepo) RemoveReg(meetId int, userId int) error {
 
 func (h *MeetingGormRepo) FilterQuery(params meeting.FilterParams) *gorm.DB {
 	return h.db.
-		Where("Id > ?", params.PrevId).
 		Where("Start_Date >= ?::date ", params.StartDate.Format("2006-01-02")).
 		Where("End_Date <= ?::date", params.EndDate.Format("2006-01-02")).
 		Preload("Tags").
@@ -345,7 +344,10 @@ func (h *MeetingGormRepo) UpdateMeeting(update models.MeetingCard) error {
 
 func (h *MeetingGormRepo) GetNextMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
 	var meetings []Meeting
-	db := h.FilterQuery(params).Order("Start_Date ASC").Find(&meetings)
+	dtStr := params.PrevStart.Add(time.Millisecond).Format("2006-01-02T15:04:05.000Z0700")
+	db := h.FilterQuery(params).
+		Where("start_date > ?::timestamp OR (start_date = ?::timestamp AND Id > ?)", dtStr, dtStr, params.PrevId).
+		Order("Start_Date ASC").Order("Id ASC").Find(&meetings)
 	err := db.Error
 	if err != nil {
 		return []models.Meeting{}, err
@@ -355,7 +357,9 @@ func (h *MeetingGormRepo) GetNextMeetings(params meeting.FilterParams) ([]models
 
 func (h *MeetingGormRepo) GetTopMeetings(params meeting.FilterParams) ([]models.Meeting, error) {
 	var meetings []Meeting
-	db := h.FilterQuery(params).Order("Likes_Count DESC").Find(&meetings)
+	db := h.FilterQuery(params).
+		Where("Likes_Count < ? OR (Likes_Count = ? AND Id > ?)", params.PrevLikes, params.PrevLikes, params.PrevId).
+		Order("Likes_Count DESC").Order("Id ASC").Find(&meetings)
 	err := db.Error
 	if err != nil {
 		return []models.Meeting{}, err

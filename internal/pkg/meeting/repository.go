@@ -14,6 +14,8 @@ type FilterParams struct {
 	StartDate  time.Time
 	EndDate    time.Time
 	PrevId     int
+	PrevLikes  int
+	PrevStart  time.Time
 	CountLimit int
 	UserId     int
 }

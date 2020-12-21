@@ -43,6 +43,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, nil)
 
 		apitest.New("GetMeetingsList").
@@ -81,6 +83,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, errors.New("New err"))
 
 		apitest.New("GetMeetingsList").
@@ -119,6 +123,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, nil)
 
 		apitest.New("GetMeetingsList").
@@ -157,6 +163,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, errors.New("Err"))
 
 		apitest.New("GetMeetingsList").
@@ -221,6 +229,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, nil)
 
 		apitest.New("GetMeetingsList").
@@ -259,6 +269,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, errors.New("Err"))
 
 		apitest.New("GetMeetingsList").
@@ -323,6 +335,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, nil)
 
 		apitest.New("GetMeetingsList").
@@ -361,6 +375,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, errors.New("Err"))
 
 		apitest.New("GetMeetingsList").
@@ -399,6 +415,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, nil)
 
 		apitest.New("GetMeetingsList").
@@ -437,6 +455,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}).Return([]models.Meeting{}, errors.New("Err"))
 
 		apitest.New("GetMeetingsList").
@@ -502,6 +522,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}, []string{"banana"}).Return([]models.Meeting{}, nil)
 
 		apitest.New("GetMeetingsList").
@@ -541,6 +563,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}, []string{"banana"}).Return([]models.Meeting{}, errors.New("Err"))
 
 		apitest.New("GetMeetingsList").
@@ -606,6 +630,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}, 15).Return([]models.Meeting{}, nil)
 
 		apitest.New("GetMeetingsList").
@@ -645,6 +671,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}, 15).Return([]models.Meeting{}, errors.New("Err"))
 
 		apitest.New("GetMeetingsList").
@@ -1156,6 +1184,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     -1,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}, "test", -1).Return([]models.Meeting{}, nil)
 
 		apitest.New("GetMeetingsList").
@@ -1195,6 +1225,8 @@ func TestSessions(t *testing.T) {
 			PrevId:     3,
 			CountLimit: 10,
 			UserId:     -1,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 		}, "test", -1).Return([]models.Meeting{}, errors.New("Err"))
 
 		apitest.New("GetMeetingsList").
