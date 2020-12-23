@@ -212,7 +212,22 @@ func TestTag(t *testing.T) {
 			GetProfile(-1, 1).
 			Return(models.Profile{}, nil)
 
+		proRepo.EXPECT().
+			GetUserSubscriptions(profile.FilterParams{}).
+			Return([]models.ProfileCard{}, nil)
+
+		proRepo.EXPECT().
+			CreateSubscription(3, 4).
+			Return(3, nil)
+
+		proRepo.EXPECT().
+			RemoveSubscription(3, 4).
+			Return(nil)
+
 		_, _ = p.GetAll(profile.FilterParams{})
 		_, _ = p.GetProfile(-1, 1)
+		_, _ = p.GetUserSubscriptions(profile.FilterParams{})
+		_, _ = p.CreateSubscription(3, 4)
+		_ = p.RemoveSubscription(3, 4)
 	})
 }

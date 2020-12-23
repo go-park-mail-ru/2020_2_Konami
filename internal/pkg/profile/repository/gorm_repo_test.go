@@ -122,6 +122,41 @@ func (s *Suite) TestGetCredError() {
 	require.Equal(s.T(), err, s.bdError)
 }
 
+func (s *Suite) TestGetSubs() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{}))
+
+	_, err := s.repository.GetUserSubscriptions(profile.FilterParams{
+		PrevId:      1,
+		CountLimit:  1,
+		ReqAuthorId: -1,
+	})
+
+	require.NoError(s.T(), err)
+}
+
+func (s *Suite) TestCheckUserSubscription() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{}))
+
+	_, err := s.repository.CheckUserSubscription(1, 2)
+
+	require.NoError(s.T(), err)
+}
+
+
+func (s *Suite) TestCreateSubscription() {
+	s.mock.ExpectQuery("SELECT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	s.mock.ExpectQuery("INSERT").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+
+	_, err := s.repository.CreateSubscription(1, 2)
+
+	require.NoError(s.T(), err)
+}
+
 func (s *Suite) TestEditPhoto() {
 	/*	s.mock.ExpectQuery("SELECT").
 			WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))

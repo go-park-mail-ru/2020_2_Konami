@@ -17,6 +17,50 @@ import (
 var testHandler ProfileHandler
 
 func TestSessions(t *testing.T) {
+	t.Run("GetUserSubscriptions", func(t *testing.T) {
+		var args []middleware.RouteArgs
+
+		handler := middleware.SetMuxVars(testHandler.GetUserSubscriptions, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		p := profile.NewMockUseCase(ctrl)
+		testHandler.ProfileUC = p
+
+		p.EXPECT().GetUserSubscriptions(profile.FilterParams{ReqAuthorId: -1}).Return([]models.ProfileCard{}, nil)
+
+		apitest.New("Get-All-Ok").
+			Handler(handler).
+			Method("Get").
+			URL("/people").
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+	})
+
+	t.Run("GetUserSubscriptionsErr1", func(t *testing.T) {
+		var args []middleware.RouteArgs
+
+		handler := middleware.SetMuxVars(testHandler.GetUserSubscriptions, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		p := profile.NewMockUseCase(ctrl)
+		testHandler.ProfileUC = p
+
+		p.EXPECT().GetUserSubscriptions(profile.FilterParams{ReqAuthorId: -1}).Return([]models.ProfileCard{}, errors.New("err"))
+
+		apitest.New("Get-All-Ok").
+			Handler(handler).
+			Method("Get").
+			URL("/people").
+			Expect(t).
+			Status(http.StatusNotFound).
+			End()
+	})
+
 	t.Run("Get-All-Ok", func(t *testing.T) {
 		var args []middleware.RouteArgs
 		//args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
@@ -323,6 +367,7 @@ func TestSessions(t *testing.T) {
 		var args []middleware.RouteArgs
 
 		handler := middleware.SetMuxVars(testHandler.UploadUserPic, args)
+		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -676,6 +721,345 @@ func TestSessions(t *testing.T) {
 			Handler(handler).
 			Method("POST").
 			URL("/logout").
+			Expect(t).
+			Status(http.StatusUnauthorized).
+			End()
+	})
+
+	t.Run("Get-OK", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+
+		handler := middleware.SetMuxVars(testHandler.GetUserId, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+	})
+
+	t.Run("CreateUserSubscription", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
+
+		handler := middleware.SetMuxVars(testHandler.CreateUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		p := profile.NewMockUseCase(ctrl)
+		testHandler.ProfileUC = p
+
+		p.EXPECT().CreateSubscription(4, 10).Return(1, nil)
+		testCredit := models.UserSubscription{TargetId: 10}
+
+		testCreditJSON, err := json.Marshal(testCredit)
+		assert.NoError(t, err)
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Body(string(testCreditJSON)).
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+	})
+
+	t.Run("CreateUserSubscriptionErr1", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
+
+		handler := middleware.SetMuxVars(testHandler.CreateUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		p := profile.NewMockUseCase(ctrl)
+		testHandler.ProfileUC = p
+
+		p.EXPECT().CreateSubscription(4, 10).Return(1, errors.New("err"))
+		testCredit := models.UserSubscription{TargetId: 10}
+
+		testCreditJSON, err := json.Marshal(testCredit)
+		assert.NoError(t, err)
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Body(string(testCreditJSON)).
+			Expect(t).
+			Status(http.StatusInternalServerError).
+			End()
+	})
+
+	t.Run("CreateUserSubscriptionErr2", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
+
+		handler := middleware.SetMuxVars(testHandler.CreateUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		p := profile.NewMockUseCase(ctrl)
+		testHandler.ProfileUC = p
+
+		p.EXPECT().CreateSubscription(4, 10).Return(1, profile.ErrUserNonExistent)
+		testCredit := models.UserSubscription{TargetId: 10}
+
+		testCreditJSON, err := json.Marshal(testCredit)
+		assert.NoError(t, err)
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Body(string(testCreditJSON)).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+	})
+
+	t.Run("CreateUserSubscriptionErr3", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
+
+		handler := middleware.SetMuxVars(testHandler.CreateUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		p := profile.NewMockUseCase(ctrl)
+		testHandler.ProfileUC = p
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+	})
+
+	t.Run("CreateUserSubscriptionErr4", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+
+		handler := middleware.SetMuxVars(testHandler.CreateUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Expect(t).
+			Status(http.StatusUnauthorized).
+			End()
+	})
+
+	t.Run("CreateUserSubscriptionErr5", func(t *testing.T) {
+		var args []middleware.RouteArgs
+
+		handler := middleware.SetMuxVars(testHandler.CreateUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Expect(t).
+			Status(http.StatusUnauthorized).
+			End()
+	})
+
+	t.Run("RemoveUserSubscription", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
+
+		handler := middleware.SetMuxVars(testHandler.RemoveUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		p := profile.NewMockUseCase(ctrl)
+		testHandler.ProfileUC = p
+
+		p.EXPECT().RemoveSubscription(4, 10).Return(nil)
+
+		testCredit := models.UserSubscription{TargetId: 10}
+
+		testCreditJSON, err := json.Marshal(testCredit)
+		assert.NoError(t, err)
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Body(string(testCreditJSON)).
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+	})
+
+	t.Run("RemoveUserSubscriptionErr1", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
+
+		handler := middleware.SetMuxVars(testHandler.RemoveUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		p := profile.NewMockUseCase(ctrl)
+		testHandler.ProfileUC = p
+
+		p.EXPECT().RemoveSubscription(4, 10).Return(errors.New("Err"))
+
+		testCredit := models.UserSubscription{TargetId: 10}
+
+		testCreditJSON, err := json.Marshal(testCredit)
+		assert.NoError(t, err)
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Body(string(testCreditJSON)).
+			Expect(t).
+			Status(http.StatusInternalServerError).
+			End()
+	})
+
+	t.Run("RemoveUserSubscriptionErr1", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
+
+		handler := middleware.SetMuxVars(testHandler.RemoveUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		p := profile.NewMockUseCase(ctrl)
+		testHandler.ProfileUC = p
+
+		p.EXPECT().RemoveSubscription(4, 10).Return(errors.New("Err"))
+
+		testCredit := models.UserSubscription{TargetId: 10}
+
+		testCreditJSON, err := json.Marshal(testCredit)
+		assert.NoError(t, err)
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Body(string(testCreditJSON)).
+			Expect(t).
+			Status(http.StatusInternalServerError).
+			End()
+	})
+
+	t.Run("RemoveUserSubscriptionErr2", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
+
+		handler := middleware.SetMuxVars(testHandler.RemoveUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+	})
+
+	t.Run("RemoveUserSubscriptionErr3", func(t *testing.T) {
+		var args []middleware.RouteArgs
+		args = append(args, middleware.RouteArgs{Key: "userId", Value: 4})
+
+		handler := middleware.SetMuxVars(testHandler.RemoveUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
+			Expect(t).
+			Status(http.StatusUnauthorized).
+			End()
+	})
+
+	t.Run("RemoveUserSubscriptionErr3", func(t *testing.T) {
+		var args []middleware.RouteArgs
+
+		handler := middleware.SetMuxVars(testHandler.RemoveUserSubscription, args)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := session.NewMockAuthCheckerClient(ctrl)
+		testHandler.AuthClient = m
+
+		apitest.New("Get-OK").
+			Handler(handler).
+			Method("Get").
+			URL("/api/me/").
 			Expect(t).
 			Status(http.StatusUnauthorized).
 			End()

@@ -1285,4 +1285,195 @@ func TestSessions(t *testing.T) {
 			Status(http.StatusBadRequest).
 			End()
 	})
+
+	t.Run("GetSubsMeetingsList", func(t *testing.T) {
+		var args []middleware.QueryArgs
+		args = append(args, middleware.QueryArgs{Key: "start", Value: "2006-01-02"})
+		args = append(args, middleware.QueryArgs{Key: "end", Value: "2007-01-02"})
+		args = append(args, middleware.QueryArgs{Key: "prevId", Value: "3"})
+		args = append(args, middleware.QueryArgs{Key: "limit", Value: "10"})
+
+		var args2 []middleware.RouteArgs
+		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: 4})
+		handler := middleware.SetVarsAndMux(testHandler.GetSubsMeetingsList, args, args2)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := meeting.NewMockUseCase(ctrl)
+		testHandler.MeetingUC = m
+
+		layout := "2006-01-02"
+		time1, _ := time.Parse(layout, "2006-01-02")
+		time2, _ := time.Parse(layout, "2007-01-02")
+
+		m.EXPECT().FilterSubsRegistered(meeting.FilterParams{
+			StartDate:  time1,
+			EndDate:    time2,
+			PrevId:     3,
+			CountLimit: 10,
+			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		}).Return([]models.Meeting{}, nil)
+
+		apitest.New("GetMeetingsList").
+			Handler(handler).
+			Method("Get").
+			URL("/user").
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+	})
+
+	t.Run("GetSubsMeetingsListErr1", func(t *testing.T) {
+		var args []middleware.QueryArgs
+		args = append(args, middleware.QueryArgs{Key: "start", Value: "2006-01-02"})
+		args = append(args, middleware.QueryArgs{Key: "end", Value: "2007-01-02"})
+		args = append(args, middleware.QueryArgs{Key: "prevId", Value: "3"})
+		args = append(args, middleware.QueryArgs{Key: "limit", Value: "10"})
+
+		var args2 []middleware.RouteArgs
+		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: 4})
+		handler := middleware.SetVarsAndMux(testHandler.GetSubsMeetingsList, args, args2)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := meeting.NewMockUseCase(ctrl)
+		testHandler.MeetingUC = m
+
+		layout := "2006-01-02"
+		time1, _ := time.Parse(layout, "2006-01-02")
+		time2, _ := time.Parse(layout, "2007-01-02")
+
+		m.EXPECT().FilterSubsRegistered(meeting.FilterParams{
+			StartDate:  time1,
+			EndDate:    time2,
+			PrevId:     3,
+			CountLimit: 10,
+			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		}).Return([]models.Meeting{}, errors.New("Err"))
+
+		apitest.New("GetMeetingsList").
+			Handler(handler).
+			Method("Get").
+			URL("/user").
+			Expect(t).
+			Status(http.StatusInternalServerError).
+			End()
+	})
+
+	t.Run("GetSubsMeetingsListErr1", func(t *testing.T) {
+		var args []middleware.QueryArgs
+		var args2 []middleware.RouteArgs
+		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: -1})
+		handler := middleware.SetVarsAndMux(testHandler.GetSubsMeetingsList, args, args2)
+
+		apitest.New("GetMeetingsList").
+			Handler(handler).
+			Method("Get").
+			URL("/user").
+			Expect(t).
+			Status(http.StatusUnauthorized).
+			End()
+	})
+	//
+	t.Run("GetSubsMeetingsList", func(t *testing.T) {
+		var args []middleware.QueryArgs
+		args = append(args, middleware.QueryArgs{Key: "start", Value: "2006-01-02"})
+		args = append(args, middleware.QueryArgs{Key: "end", Value: "2007-01-02"})
+		args = append(args, middleware.QueryArgs{Key: "prevId", Value: "3"})
+		args = append(args, middleware.QueryArgs{Key: "limit", Value: "10"})
+
+		var args2 []middleware.RouteArgs
+		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: 4})
+		handler := middleware.SetVarsAndMux(testHandler.GetSubsFavMeetingsList, args, args2)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := meeting.NewMockUseCase(ctrl)
+		testHandler.MeetingUC = m
+
+		layout := "2006-01-02"
+		time1, _ := time.Parse(layout, "2006-01-02")
+		time2, _ := time.Parse(layout, "2007-01-02")
+
+		m.EXPECT().FilterSubsLiked(meeting.FilterParams{
+			StartDate:  time1,
+			EndDate:    time2,
+			PrevId:     3,
+			CountLimit: 10,
+			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		}).Return([]models.Meeting{}, nil)
+
+		apitest.New("GetMeetingsList").
+			Handler(handler).
+			Method("Get").
+			URL("/user").
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+	})
+
+	t.Run("GetSubsMeetingsListErr1", func(t *testing.T) {
+		var args []middleware.QueryArgs
+		args = append(args, middleware.QueryArgs{Key: "start", Value: "2006-01-02"})
+		args = append(args, middleware.QueryArgs{Key: "end", Value: "2007-01-02"})
+		args = append(args, middleware.QueryArgs{Key: "prevId", Value: "3"})
+		args = append(args, middleware.QueryArgs{Key: "limit", Value: "10"})
+
+		var args2 []middleware.RouteArgs
+		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: 4})
+		handler := middleware.SetVarsAndMux(testHandler.GetSubsFavMeetingsList, args, args2)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		m := meeting.NewMockUseCase(ctrl)
+		testHandler.MeetingUC = m
+
+		layout := "2006-01-02"
+		time1, _ := time.Parse(layout, "2006-01-02")
+		time2, _ := time.Parse(layout, "2007-01-02")
+
+		m.EXPECT().FilterSubsLiked(meeting.FilterParams{
+			StartDate:  time1,
+			EndDate:    time2,
+			PrevId:     3,
+			CountLimit: 10,
+			UserId:     4,
+			PrevLikes:  MaxLikes,
+			PrevStart:  time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+		}).Return([]models.Meeting{}, errors.New("Err"))
+
+		apitest.New("GetMeetingsList").
+			Handler(handler).
+			Method("Get").
+			URL("/user").
+			Expect(t).
+			Status(http.StatusInternalServerError).
+			End()
+	})
+
+	t.Run("GetSubsMeetingsListErr1", func(t *testing.T) {
+		var args []middleware.QueryArgs
+		var args2 []middleware.RouteArgs
+		args2 = append(args2, middleware.RouteArgs{Key: middleware.UserID, Value: -1})
+		handler := middleware.SetVarsAndMux(testHandler.GetSubsFavMeetingsList, args, args2)
+
+		apitest.New("GetMeetingsList").
+			Handler(handler).
+			Method("Get").
+			URL("/user").
+			Expect(t).
+			Status(http.StatusUnauthorized).
+			End()
+	})
+
 }
