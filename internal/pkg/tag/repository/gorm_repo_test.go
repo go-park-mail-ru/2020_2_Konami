@@ -221,12 +221,3 @@ func (s *Suite) AfterTest(_, _ string) {
 func TestMeetings(t *testing.T) {
 	suite.Run(t, new(Suite))
 }
-
-/*
-Testing method
-GetTagById(id int) (models.Tag, error)
-GetTagByName(name string) (models.Tag, error)
-CreateTag(name string) (models.Tag, error)
-GetOrCreateTag(name string) (models.Tag, error)
-FilterTags(startsWith string) ([]models.Tag, error)
-*/

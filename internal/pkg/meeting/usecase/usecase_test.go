@@ -138,7 +138,7 @@ func TestTag(t *testing.T) {
 
 		testM := models.MeetingDetails{
 			Card: &models.MeetingCard{
-				Label:  &models.MeetingLabel{
+				Label: &models.MeetingLabel{
 					Id:    0,
 					Title: "Data",
 					Cover: "",
@@ -171,5 +171,6 @@ func TestTag(t *testing.T) {
 			Return(nil)
 
 		err = uc.UpdateMeeting(3, testUpdModels)
+		assert.NoError(t, err)
 	})
 }

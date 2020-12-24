@@ -98,8 +98,3 @@ func (s *Suite) AfterTest(_, _ string) {
 func TestMeetings(t *testing.T) {
 	suite.Run(t, new(Suite))
 }
-
-/*GetUserId(token string) (userId int, err error)
-CreateSession(userId int) (token string, err error)
-RemoveSession(token string) error
-*/

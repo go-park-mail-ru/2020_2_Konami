@@ -366,8 +366,8 @@ func TestSessions(t *testing.T) {
 	t.Run("UploadBad3", func(t *testing.T) {
 		var args []middleware.RouteArgs
 
-		handler := middleware.SetMuxVars(testHandler.UploadUserPic, args)
 		args = append(args, middleware.RouteArgs{Key: middleware.CSRFValid, Value: true})
+		handler := middleware.SetMuxVars(testHandler.UploadUserPic, args)
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -383,74 +383,6 @@ func TestSessions(t *testing.T) {
 			Status(http.StatusUnauthorized).
 			End()
 	})
-
-	/*t.Run("SignUp", func(t *testing.T) {
-		var args []middleware.RouteArgs
-
-		handler := middleware.SetMuxVars(testHandler.SignUp, args)
-
-		testCred := models.Credentials{
-			Login:    "qwerty",
-			Password: "qwerty",
-		}
-		testUpdJSON, _ := json.Marshal(testCred)
-
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		p := profile.NewMockUseCase(ctrl)
-		testHandler.ProfileUC = p
-
-		m := session.NewMockAuthCheckerClient(ctrl)
-		testHandler.AuthClient = m
-
-		p.EXPECT().Validate(testCred).Return(0, profile.ErrUserNonExistent)
-		p.EXPECT().SignUp(testCred).Return(0, nil)
-		m.EXPECT().Create(context.Background(), ).Return("tok", nil)
-
-		apitest.New("Edit").
-			Handler(handler).
-			Method("PATCH").
-			URL("/user").
-			Body(string(testUpdJSON)).
-			Expect(t).
-			Status(http.StatusCreated).
-			End()
-	})*/
-
-	/*t.Run("SignUpBad1", func(t *testing.T) {
-		var args []middleware.RouteArgs
-
-		handler := middleware.SetMuxVars(testHandler.SignUp, args)
-
-		testCred := models.Credentials{
-			Login:    "qwerty",
-			Password: "qwerty",
-		}
-		testUpdJSON, _ := json.Marshal(testCred)
-
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		p := profile.NewMockUseCase(ctrl)
-		testHandler.ProfileUC = p
-
-		m := session.NewMockAuthCheckerClient(ctrl)
-		testHandler.AuthClient = m
-
-		p.EXPECT().Validate(testCred).Return(0, profile.ErrUserNonExistent)
-		p.EXPECT().SignUp(testCred).Return(0, nil)
-		//m.EXPECT().CreateSession(0).Return("tok", errors.New("Err"))
-
-		apitest.New("Edit").
-			Handler(handler).
-			Method("PATCH").
-			URL("/user").
-			Body(string(testUpdJSON)).
-			Expect(t).
-			Status(http.StatusInternalServerError).
-			End()
-	})*/
 
 	t.Run("SignUpBad2", func(t *testing.T) {
 		var args []middleware.RouteArgs
@@ -581,44 +513,6 @@ func TestSessions(t *testing.T) {
 			Status(http.StatusUnauthorized).
 			End()
 	})
-
-	/*	t.Run("LogIN", func(t *testing.T) {
-		var args []middleware.RouteArgs
-		handler := middleware.SetMuxVars(testHandler.LogIn, args)
-
-		testCredit := models.Credentials{
-			Login:    "qwerty",
-			Password: "qwerty",
-		}
-		testCreditJSON, err := json.Marshal(testCredit)
-		assert.NoError(t, err)
-
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		m := session.NewMockAuthCheckerClient(ctrl)
-		testHandler.AuthClient = m
-
-		n := profile.NewMockUseCase(ctrl)
-		testHandler.ProfileUC = n
-
-		n.EXPECT().
-			Validate(testCredit).
-			Return(1, nil)
-
-		//m.EXPECT().
-		//	CreateSession(1).
-		//	Return("lol", nil)
-
-		apitest.New("LogIN").
-			Handler(handler).
-			Method("POST").
-			URL("/login").
-			Body(string(testCreditJSON)).
-			Expect(t).
-			Status(http.StatusCreated).
-			End()
-	})*/
 
 	t.Run("LogIN-BadReq", func(t *testing.T) {
 		var args []middleware.RouteArgs
@@ -1064,58 +958,4 @@ func TestSessions(t *testing.T) {
 			Status(http.StatusUnauthorized).
 			End()
 	})
-
-	/*t.Run("LogOut", func(t *testing.T) {
-		var args []middleware.RouteArgs
-		args = append(args, middleware.RouteArgs{
-			Key:   middleware.AuthToken,
-			Value: "Some_tok",
-		})
-		handler := middleware.SetMuxVars(testHandler.LogOut, args)
-
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		m := session.NewMockAuthCheckerClient(ctrl)
-		testHandler.AuthClient = m
-
-		//m.EXPECT().
-		//	RemoveSession("Some_tok").
-		//	Return(nil)
-
-		apitest.New("LogOUT").
-			Handler(handler).
-			Method("POST").
-			URL("/logout").
-			Expect(t).
-			Status(http.StatusOK).
-			End()
-	})*/
-
-	/*t.Run("LogOut", func(t *testing.T) {
-		var args []middleware.RouteArgs
-		args = append(args, middleware.RouteArgs{
-			Key:   middleware.AuthToken,
-			Value: "Some_tok",
-		})
-		handler := middleware.SetMuxVars(testHandler.LogOut, args)
-
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		m := session.NewMockAuthCheckerClient(ctrl)
-		testHandler.AuthClient = m
-
-		//m.EXPECT().
-		//	RemoveSession("Some_tok").
-		//	Return(errors.New("ERROR"))
-
-		apitest.New("LogOUT").
-			Handler(handler).
-			Method("POST").
-			URL("/logout").
-			Expect(t).
-			Status(http.StatusInternalServerError).
-			End()
-	})*/
 }
