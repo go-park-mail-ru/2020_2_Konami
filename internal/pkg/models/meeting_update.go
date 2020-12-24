@@ -2,8 +2,9 @@
 package models
 
 type MeetUpdateFields struct {
-	Reg  *bool `json:"isRegistered"`
-	Like *bool `json:"isLiked"`
+	Reg  *bool        `json:"isRegistered"`
+	Like *bool        `json:"isLiked"`
+	Card *MeetingData `json:"card"`
 }
 
 //easyjson:json

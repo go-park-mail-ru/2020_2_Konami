@@ -24,8 +24,7 @@ func InitDelivery(db *gorm.DB) (sessionDeliveryPkg.SessionHandler, error) {
 }
 
 func Start() {
-	var logger *loggerPkg.Logger
-	logger = loggerPkg.NewLogger(os.Stdout)
+	logger := loggerPkg.NewLogger(os.Stdout)
 	logger.SetLevel(logrus.TraceLevel)
 	dsn := os.Getenv("DB_CONN")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})

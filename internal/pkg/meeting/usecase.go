@@ -10,9 +10,11 @@ type UseCase interface {
 	GetNextMeetings(params FilterParams) ([]models.Meeting, error)
 	GetTopMeetings(params FilterParams) ([]models.Meeting, error)
 	FilterLiked(params FilterParams) ([]models.Meeting, error)
+	FilterSubsLiked(params FilterParams) ([]models.Meeting, error)
 	FilterRegistered(params FilterParams) ([]models.Meeting, error)
+	FilterSubsRegistered(params FilterParams) ([]models.Meeting, error)
 	FilterRecommended(params FilterParams) ([]models.Meeting, error)
-	FilterTagged(params FilterParams, tagId int) ([]models.Meeting, error)
+	FilterTagged(params FilterParams, tags []string) ([]models.Meeting, error)
 	FilterSimilar(params FilterParams, meetingId int) ([]models.Meeting, error)
 	SearchMeetings(params FilterParams, meetingName string, limit int) ([]models.Meeting, error)
 }

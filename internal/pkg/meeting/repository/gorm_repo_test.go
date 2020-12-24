@@ -15,15 +15,15 @@ import (
 
 type Suite struct {
 	suite.Suite
-	DB      *gorm.DB
-	mock    sqlmock.Sqlmock
+	DB   *gorm.DB
+	mock sqlmock.Sqlmock
 
-	bdError error
+	bdError    error
 	repository meeting.Repository
 }
 
 func (s *Suite) SetupSuite() {
-	var db  *sql.DB
+	var db *sql.DB
 	var err error
 
 	db, s.mock, err = sqlmock.New()
@@ -98,7 +98,7 @@ func (s *Suite) TestFilterMeet() {
 		PrevId:     0,
 		CountLimit: 0,
 		UserId:     0,
-	}, 100)
+	}, []string{"100"})
 	require.NoError(s.T(), err)
 }
 
@@ -167,7 +167,7 @@ func (s *Suite) TestFilterMeetErr() {
 		PrevId:     0,
 		CountLimit: 0,
 		UserId:     0,
-	}, 100)
+	}, []string{"100"})
 	require.Error(s.T(), err)
 	require.Equal(s.T(), err, s.bdError)
 }
@@ -204,7 +204,6 @@ func (s *Suite) TestGetNextMeetings() {
 
 	require.NoError(s.T(), err)
 }
-
 
 func (s *Suite) AfterTest(_, _ string) {
 	require.NoError(s.T(), s.mock.ExpectationsWereMet())

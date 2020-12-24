@@ -1,0 +1,50 @@
+name: CI
+
+on: [push]
+
+jobs:
+  lint:
+    name: linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v1
+      - name: golangci-lint
+        uses: reviewdog/action-golangci-lint@v1
+        with:
+          workdir: ./
+  test:
+    name: tests
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.14.x'
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Main Service Test
+        run: go test -coverprofile=coverage1.out -coverpkg=./... -cover ./... && cat coverage1.out | grep -v easyjson | grep -v mock | grep -v server | grep -v proto | grep -v csrf_dispatcher > cover.out && go tool cover -func=cover.out
+  deploy:
+    if: github.ref == 'refs/heads/deploy'
+    needs: test
+    runs-on: ubuntu-latest
+    container:
+      image: kroniak/ssh-client
+    steps:
+      - uses: actions/checkout@v2
+      - name: Decode key
+        env:
+          DEPLOYMENTKEY: ${{ secrets.BASE64_KEY }}
+          PRUNE_DOCKER: cffd6e0f3e06
+        run: |
+          echo "$DEPLOYMENTKEY" | base64 -d  >deployment.key
+          chmod 400 deployment.key
+      - name: Update server
+        run: |
+          ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i deployment.key \
+          ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} ". ~/.profile && cd ${{ secrets.PROJECT_PATH }} &&
+          git pull && docker-compose down && prune_docker && docker build -t server . &&
+          prune_docker && docker build -t csrf_server -f ./csrf/Dockerfile . && prune_docker
+          docker build -t auth_server -f ./auth/Dockerfile . && prune_docker && docker-compose up -d"

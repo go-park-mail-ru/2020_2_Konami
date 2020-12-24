@@ -15,15 +15,15 @@ import (
 
 type Suite struct {
 	suite.Suite
-	DB      *gorm.DB
-	mock    sqlmock.Sqlmock
+	DB   *gorm.DB
+	mock sqlmock.Sqlmock
 
-	bdError error
+	bdError    error
 	repository message.Repository
 }
 
 func (s *Suite) SetupSuite() {
-	var db  *sql.DB
+	var db *sql.DB
 	var err error
 
 	db, s.mock, err = sqlmock.New()

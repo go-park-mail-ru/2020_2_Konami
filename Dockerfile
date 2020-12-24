@@ -1,4 +1,5 @@
 FROM golang:latest AS build_step
+LABEL stage=builder
 ENV GO111MODULE=on
 WORKDIR  /go/src
 COPY . .
@@ -9,4 +10,5 @@ WORKDIR /app
 COPY --from=build_step /go/build/main /app/main
 RUN chmod +x /app/main
 EXPOSE 8001/tcp
+EXPOSE 8080/tcp
 ENTRYPOINT /app/main

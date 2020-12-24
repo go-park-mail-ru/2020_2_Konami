@@ -13,15 +13,15 @@ import (
 )
 
 type UploadsHandler struct {
-	uploadsDir string
+	UploadsDir string
 }
 
 func NewUploadsHandler(uploadsDir string) UploadsHandler {
-	return UploadsHandler{uploadsDir: uploadsDir}
+	return UploadsHandler{UploadsDir: uploadsDir}
 }
 
 func (h UploadsHandler) SavePng(imgPath string, img *image.Image) (string, error) {
-	imgPath = h.uploadsDir + "/" + imgPath + ".png"
+	imgPath = h.UploadsDir + "/" + imgPath + ".png"
 	f, err := os.OpenFile(imgPath, os.O_WRONLY|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		return "", err
@@ -68,13 +68,13 @@ func (h UploadsHandler) UploadImage(imgPath string, img io.Reader) (string, erro
 	if ext != "jpg" && ext != "jpeg" && ext != "png" {
 		return "", errors.New("invalid file format")
 	}
-	imgPath = h.uploadsDir + "/" + imgPath
+	imgPath = h.UploadsDir + "/" + imgPath
 	f, err := os.OpenFile(imgPath, os.O_WRONLY|os.O_CREATE, os.ModePerm)
 	if err != nil {
 		return "", err
 	}
 	defer f.Close()
-	var written int64 = 0
+	var written int64
 	written, err = io.Copy(f, img)
 	if err != nil {
 		return "", err

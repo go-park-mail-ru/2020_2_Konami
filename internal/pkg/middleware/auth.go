@@ -30,19 +30,19 @@ func (am *AuthMiddleware) Auth(next http.Handler) http.Handler {
 		ctx := r.Context()
 		token, err := r.Cookie("authToken")
 		if err != nil {
-			ctx = context.WithValue(ctx, AuthStatus, false)
+			ctx = context.WithValue(ctx, AuthStatus, false) // nolint:staticcheck
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
 		sess, err := am.AuthChecker.Check(context.Background(), &auth.SessionToken{Token: token.Value})
 		if err != nil {
-			ctx = context.WithValue(ctx, AuthStatus, false)
+			ctx = context.WithValue(ctx, AuthStatus, false) // nolint:staticcheck
 			next.ServeHTTP(w, r.WithContext(ctx))
 			return
 		}
-		ctx = context.WithValue(ctx, AuthStatus, true)
-		ctx = context.WithValue(ctx, UserID, int(sess.UserId))
-		ctx = context.WithValue(ctx, AuthToken, token.Value)
+		ctx = context.WithValue(ctx, AuthStatus, true)         // nolint:staticcheck
+		ctx = context.WithValue(ctx, UserID, int(sess.UserId)) // nolint:staticcheck
+		ctx = context.WithValue(ctx, AuthToken, token.Value)   // nolint:staticcheck
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

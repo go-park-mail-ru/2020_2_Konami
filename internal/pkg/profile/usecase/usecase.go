@@ -61,16 +61,28 @@ func (h ProfileUseCase) UpdateProfileCard(card *models.ProfileCard, data models.
 	}
 }
 
-func (h ProfileUseCase) GetAll() ([]models.ProfileCard, error) {
-	return h.ProfileRepo.GetAll()
+func (h ProfileUseCase) GetAll(params profile.FilterParams) ([]models.ProfileCard, error) {
+	return h.ProfileRepo.GetAll(params)
 }
 
-func (h ProfileUseCase) GetProfile(userId int) (models.Profile, error) {
-	return h.ProfileRepo.GetProfile(userId)
+func (h ProfileUseCase) GetUserSubscriptions(params profile.FilterParams) ([]models.ProfileCard, error) {
+	return h.ProfileRepo.GetUserSubscriptions(params)
+}
+
+func (h ProfileUseCase) CreateSubscription(authorId int, targetId int) (int, error) {
+	return h.ProfileRepo.CreateSubscription(authorId, targetId)
+}
+
+func (h ProfileUseCase) RemoveSubscription(authorId int, targetId int) error {
+	return h.ProfileRepo.RemoveSubscription(authorId, targetId)
+}
+
+func (h ProfileUseCase) GetProfile(reqAuthorId, userId int) (models.Profile, error) {
+	return h.ProfileRepo.GetProfile(reqAuthorId, userId)
 }
 
 func (h ProfileUseCase) EditProfile(userId int, data models.ProfileUpdate) error {
-	p, err := h.ProfileRepo.GetProfile(userId)
+	p, err := h.ProfileRepo.GetProfile(-1, userId)
 	if err != nil {
 		return err
 	}

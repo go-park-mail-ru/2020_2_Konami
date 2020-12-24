@@ -20,6 +20,25 @@ type ProfileHandler struct {
 	MaxReqSize int64
 }
 
+func GetQueryParams(r *http.Request) profile.FilterParams {
+	var res profile.FilterParams
+	var err error
+	res.PrevId, err = strconv.Atoi(r.URL.Query().Get("prevId"))
+	if err != nil {
+		res.PrevId = 0
+	}
+	res.CountLimit, err = strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil || res.CountLimit <= 0 {
+		res.CountLimit = 0
+	}
+	var ok bool
+	res.ReqAuthorId, ok = r.Context().Value(middleware.UserID).(int)
+	if !ok {
+		res.ReqAuthorId = -1
+	}
+	return res
+}
+
 func (h *ProfileHandler) SignUp(w http.ResponseWriter, r *http.Request) {
 	var creds models.Credentials
 	buf := new(bytes.Buffer)
@@ -136,12 +155,16 @@ func (h *ProfileHandler) UploadUserPic(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ProfileHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	userId, err := strconv.Atoi(r.URL.Query().Get("userId"))
+	targetId, err := strconv.Atoi(r.URL.Query().Get("userId"))
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusNotFound})
 		return
 	}
-	prof, err := h.ProfileUC.GetProfile(userId)
+	userId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
+		userId = -1
+	}
+	prof, err := h.ProfileUC.GetProfile(userId, targetId)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusNotFound})
 		return
@@ -149,13 +172,86 @@ func (h *ProfileHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	hu.WriteJson(w, prof)
 }
 
-func (h *ProfileHandler) GetPeople(w http.ResponseWriter, _ *http.Request) {
-	users, err := h.ProfileUC.GetAll()
+func (h *ProfileHandler) GetPeople(w http.ResponseWriter, r *http.Request) {
+	params := GetQueryParams(r)
+	users, err := h.ProfileUC.GetAll(params)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return
 	}
 	hu.WriteJson(w, users)
+}
+
+func (h *ProfileHandler) GetUserSubscriptions(w http.ResponseWriter, r *http.Request) {
+	params := GetQueryParams(r)
+	users, err := h.ProfileUC.GetUserSubscriptions(params)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusNotFound})
+		return
+	}
+	hu.WriteJson(w, users)
+}
+
+func (h *ProfileHandler) CreateUserSubscription(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	tokenValid, ok := r.Context().Value(middleware.CSRFValid).(bool)
+	if !ok || !tokenValid {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized, ErrMsg: "Invalid CSRF token"})
+		return
+	}
+	sub := &models.UserSubscription{}
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(r.Body)
+	if err == nil {
+		err = sub.UnmarshalJSON(buf.Bytes())
+	}
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	_, err = h.ProfileUC.CreateSubscription(userId, sub.TargetId)
+	if err == profile.ErrUserNonExistent {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (h *ProfileHandler) RemoveUserSubscription(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value(middleware.UserID).(int)
+	if !ok {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	tokenValid, ok := r.Context().Value(middleware.CSRFValid).(bool)
+	if !ok || !tokenValid {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized, ErrMsg: "Invalid CSRF token"})
+		return
+	}
+	sub := &models.UserSubscription{}
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(r.Body)
+	if err == nil {
+		err = sub.UnmarshalJSON(buf.Bytes())
+	}
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
+		return
+	}
+	err = h.ProfileUC.RemoveSubscription(userId, sub.TargetId)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *ProfileHandler) EditUser(w http.ResponseWriter, r *http.Request) {

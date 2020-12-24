@@ -87,6 +87,10 @@ func InitRouter(
 	rApi := mux.NewRouter()
 	r.PathPrefix("/api/").Handler(http.StripPrefix("/api", rApi))
 	rApi.HandleFunc("/people", profile.GetPeople).Methods("GET")
+	rApi.HandleFunc("/subscriptions", profile.GetUserSubscriptions).Methods("GET")
+	rApi.HandleFunc("/subscribe", profile.CreateUserSubscription).Methods("POST")
+	rApi.HandleFunc("/unsubscribe", profile.RemoveUserSubscription).Methods("DELETE")
+
 	rApi.HandleFunc("/user", profile.GetUser).Methods("GET")
 	rApi.HandleFunc("/signup", profile.SignUp).Methods("POST")
 	rApi.HandleFunc("/login", profile.LogIn).Methods("POST")
@@ -101,6 +105,8 @@ func InitRouter(
 	rApi.HandleFunc("/meetings/tagged", meeting.GetTaggedMeetings).Methods("GET")
 	rApi.HandleFunc("/meetings/akin", meeting.GetAkinMeetings).Methods("GET")
 	rApi.HandleFunc("/meetings/search", meeting.SearchMeetings).Methods("GET")
+	rApi.HandleFunc("/meetings/subs/registered", meeting.GetSubsMeetingsList).Methods("GET")
+	rApi.HandleFunc("/meetings/subs/favorite", meeting.GetSubsFavMeetingsList).Methods("GET")
 
 	rApi.HandleFunc("/me", profile.GetUserId).Methods("GET")
 	rApi.HandleFunc("/logout", profile.LogOut).Methods("DELETE")
@@ -124,8 +130,7 @@ func InitRouter(
 }
 
 func Start() {
-	var logger *loggerPkg.Logger
-	logger = loggerPkg.NewLogger(os.Stdout)
+	logger := loggerPkg.NewLogger(os.Stdout)
 	logger.SetLevel(logrus.TraceLevel)
 	dsn := os.Getenv("DB_CONN")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -192,7 +197,7 @@ func Start() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8001"
+		port = "8080"
 	}
 	certFile := os.Getenv("CERTFILE")
 	if certFile == "" {
@@ -203,17 +208,21 @@ func Start() {
 		keyFile = "/etc/letsencrypt/live/onmeet.ru/privkey.pem"
 	}
 	tlsPort := os.Getenv("TLSPORT")
-	if tlsPort == "" {
-		logger.Println("Launching at HTTP port " + port)
-		err = http.ListenAndServe(":"+port, h)
-	} else {
+	if tlsPort != "" {
 		logger.Println("Launching at HTTPS port " + tlsPort)
-		err = http.ListenAndServeTLS(":"+tlsPort, certFile, keyFile, h)
+		go func() {
+			errHttps := http.ListenAndServeTLS(":"+tlsPort, certFile, keyFile, h)
+			if errHttps != nil {
+				logger.Fatal("Unable to launch HTTPS server: ", errHttps)
+			}
+		}()
 	}
-
+	logger.Println("Launching at HTTP port " + port)
+	err = http.ListenAndServe(":"+port, h)
 	if err != nil {
 		logger.Fatal("Unable to launch server: ", err)
 	}
+
 }
 
 func Migrate() {
@@ -235,6 +244,7 @@ func Migrate() {
 		&profileRepoPkg.SkillTag{},
 		&profileRepoPkg.InterestTag{},
 		&profileRepoPkg.Profile{},
+		&profileRepoPkg.Subscription{},
 		&meetingRepoPkg.Registration{},
 		&meetingRepoPkg.Like{},
 		&meetingRepoPkg.Meeting{},
@@ -293,4 +303,5 @@ func Truncate() {
 	db.Exec("DELETE FROM messages")
 	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.InterestTag{})
 	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.SkillTag{})
+	db.Session(&gorm.Session{AllowGlobalUpdate: true}).Delete(&profileRepoPkg.Subscription{})
 }

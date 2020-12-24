@@ -30,8 +30,7 @@ func InitDelivery(rconn *redis.Pool, log *loggerPkg.Logger, csrfSecret string, c
 }
 
 func Start() {
-	var logger *loggerPkg.Logger
-	logger = loggerPkg.NewLogger(os.Stdout)
+	logger := loggerPkg.NewLogger(os.Stdout)
 	logger.SetLevel(logrus.TraceLevel)
 	redisAddr := os.Getenv("REDIS_CONN")
 	if redisAddr == "" {

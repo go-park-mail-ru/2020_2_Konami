@@ -63,18 +63,74 @@ func (mr *MockRepositoryMockRecorder) GetMeeting(meetingId, userId, authorized i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeeting", reflect.TypeOf((*MockRepository)(nil).GetMeeting), meetingId, userId, authorized)
 }
 
-// UpdateMeeting mocks base method
-func (m *MockRepository) UpdateMeeting(userId int, update models.MeetingUpdate) error {
+// SetLike mocks base method
+func (m *MockRepository) SetLike(meetId, userId int) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateMeeting", userId, update)
+	ret := m.ctrl.Call(m, "SetLike", meetId, userId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetLike indicates an expected call of SetLike
+func (mr *MockRepositoryMockRecorder) SetLike(meetId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLike", reflect.TypeOf((*MockRepository)(nil).SetLike), meetId, userId)
+}
+
+// RemoveLike mocks base method
+func (m *MockRepository) RemoveLike(meetId, userId int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveLike", meetId, userId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveLike indicates an expected call of RemoveLike
+func (mr *MockRepositoryMockRecorder) RemoveLike(meetId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveLike", reflect.TypeOf((*MockRepository)(nil).RemoveLike), meetId, userId)
+}
+
+// SetReg mocks base method
+func (m *MockRepository) SetReg(meetId, userId int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetReg", meetId, userId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetReg indicates an expected call of SetReg
+func (mr *MockRepositoryMockRecorder) SetReg(meetId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReg", reflect.TypeOf((*MockRepository)(nil).SetReg), meetId, userId)
+}
+
+// RemoveReg mocks base method
+func (m *MockRepository) RemoveReg(meetId, userId int) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveReg", meetId, userId)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveReg indicates an expected call of RemoveReg
+func (mr *MockRepositoryMockRecorder) RemoveReg(meetId, userId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveReg", reflect.TypeOf((*MockRepository)(nil).RemoveReg), meetId, userId)
+}
+
+// UpdateMeeting mocks base method
+func (m *MockRepository) UpdateMeeting(update models.MeetingCard) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateMeeting", update)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateMeeting indicates an expected call of UpdateMeeting
-func (mr *MockRepositoryMockRecorder) UpdateMeeting(userId, update interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) UpdateMeeting(update interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeeting", reflect.TypeOf((*MockRepository)(nil).UpdateMeeting), userId, update)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateMeeting", reflect.TypeOf((*MockRepository)(nil).UpdateMeeting), update)
 }
 
 // GetNextMeetings mocks base method
@@ -122,6 +178,21 @@ func (mr *MockRepositoryMockRecorder) FilterLiked(params interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterLiked", reflect.TypeOf((*MockRepository)(nil).FilterLiked), params)
 }
 
+// FilterSubsLiked mocks base method
+func (m *MockRepository) FilterSubsLiked(params FilterParams) ([]models.Meeting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FilterSubsLiked", params)
+	ret0, _ := ret[0].([]models.Meeting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FilterSubsLiked indicates an expected call of FilterSubsLiked
+func (mr *MockRepositoryMockRecorder) FilterSubsLiked(params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterSubsLiked", reflect.TypeOf((*MockRepository)(nil).FilterSubsLiked), params)
+}
+
 // FilterRegistered mocks base method
 func (m *MockRepository) FilterRegistered(params FilterParams) ([]models.Meeting, error) {
 	m.ctrl.T.Helper()
@@ -135,6 +206,21 @@ func (m *MockRepository) FilterRegistered(params FilterParams) ([]models.Meeting
 func (mr *MockRepositoryMockRecorder) FilterRegistered(params interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterRegistered", reflect.TypeOf((*MockRepository)(nil).FilterRegistered), params)
+}
+
+// FilterSubsRegistered mocks base method
+func (m *MockRepository) FilterSubsRegistered(params FilterParams) ([]models.Meeting, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FilterSubsRegistered", params)
+	ret0, _ := ret[0].([]models.Meeting)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FilterSubsRegistered indicates an expected call of FilterSubsRegistered
+func (mr *MockRepositoryMockRecorder) FilterSubsRegistered(params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterSubsRegistered", reflect.TypeOf((*MockRepository)(nil).FilterSubsRegistered), params)
 }
 
 // FilterRecommended mocks base method
@@ -153,18 +239,18 @@ func (mr *MockRepositoryMockRecorder) FilterRecommended(params interface{}) *gom
 }
 
 // FilterTagged mocks base method
-func (m *MockRepository) FilterTagged(params FilterParams, tagId int) ([]models.Meeting, error) {
+func (m *MockRepository) FilterTagged(params FilterParams, tags []string) ([]models.Meeting, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FilterTagged", params, tagId)
+	ret := m.ctrl.Call(m, "FilterTagged", params, tags)
 	ret0, _ := ret[0].([]models.Meeting)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FilterTagged indicates an expected call of FilterTagged
-func (mr *MockRepositoryMockRecorder) FilterTagged(params, tagId interface{}) *gomock.Call {
+func (mr *MockRepositoryMockRecorder) FilterTagged(params, tags interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterTagged", reflect.TypeOf((*MockRepository)(nil).FilterTagged), params, tagId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FilterTagged", reflect.TypeOf((*MockRepository)(nil).FilterTagged), params, tags)
 }
 
 // FilterSimilar mocks base method

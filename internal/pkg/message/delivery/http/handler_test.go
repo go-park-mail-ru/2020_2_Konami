@@ -145,7 +145,6 @@ func TestSessions(t *testing.T) {
 			End()
 	})
 
-
 	t.Run("SendMesBad4", func(t *testing.T) {
 		var args []middleware.RouteArgs
 		handler := middleware.SetMuxVars(testHandler.SendMessage, args)

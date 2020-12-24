@@ -1,4 +1,5 @@
 FROM golang:latest AS build_step
+LABEL stage=builder
 ENV GO111MODULE=on
 WORKDIR  /go/src
 COPY . .

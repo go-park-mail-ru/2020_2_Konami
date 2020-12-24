@@ -1,4 +1,5 @@
 *.exe
+*.secrets
 .git
 .DS_Store
 .gitignore

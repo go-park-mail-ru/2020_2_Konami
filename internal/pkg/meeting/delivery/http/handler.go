@@ -21,6 +21,7 @@ type MeetingHandler struct {
 }
 
 const DefCountLimit = 10
+const MaxLikes = int(^uint(0) >> 1)
 
 func GetQueryParams(r *http.Request) meeting.FilterParams {
 	var res meeting.FilterParams
@@ -41,6 +42,15 @@ func GetQueryParams(r *http.Request) meeting.FilterParams {
 	res.CountLimit, err = strconv.Atoi(r.URL.Query().Get("limit"))
 	if err != nil || res.CountLimit <= 0 {
 		res.CountLimit = DefCountLimit
+	}
+	res.PrevLikes, err = strconv.Atoi(r.URL.Query().Get("prevLikes"))
+	if err != nil {
+		res.PrevLikes = MaxLikes
+	}
+	layout = "2006-01-02T15:04:05.000Z0700"
+	res.PrevStart, err = time.Parse(layout, r.URL.Query().Get("prevStart"))
+	if err != nil {
+		res.PrevStart = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 	}
 	var ok bool
 	res.UserId, ok = r.Context().Value(middleware.UserID).(int)
@@ -78,6 +88,22 @@ func (h *MeetingHandler) GetUserMeetingsList(w http.ResponseWriter, r *http.Requ
 	hu.WriteJson(w, meets)
 }
 
+func (h *MeetingHandler) GetSubsMeetingsList(w http.ResponseWriter, r *http.Request) {
+	params := GetQueryParams(r)
+	if params.UserId == -1 {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	var meets []models.Meeting
+	var err error
+	meets, err = h.MeetingUC.FilterSubsRegistered(params)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	hu.WriteJson(w, meets)
+}
+
 func (h *MeetingHandler) GetFavMeetingsList(w http.ResponseWriter, r *http.Request) {
 	params := GetQueryParams(r)
 	if params.UserId == -1 {
@@ -87,6 +113,22 @@ func (h *MeetingHandler) GetFavMeetingsList(w http.ResponseWriter, r *http.Reque
 	var meets []models.Meeting
 	var err error
 	meets, err = h.MeetingUC.FilterLiked(params)
+	if err != nil {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
+		return
+	}
+	hu.WriteJson(w, meets)
+}
+
+func (h *MeetingHandler) GetSubsFavMeetingsList(w http.ResponseWriter, r *http.Request) {
+	params := GetQueryParams(r)
+	if params.UserId == -1 {
+		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusUnauthorized})
+		return
+	}
+	var meets []models.Meeting
+	var err error
+	meets, err = h.MeetingUC.FilterSubsLiked(params)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return
@@ -124,13 +166,13 @@ func (h *MeetingHandler) GetRecommendedList(w http.ResponseWriter, r *http.Reque
 
 func (h *MeetingHandler) GetTaggedMeetings(w http.ResponseWriter, r *http.Request) {
 	params := GetQueryParams(r)
-	tagId, err := strconv.Atoi(r.URL.Query().Get("tagId"))
-	if err != nil || tagId < 0 {
+	tags, exist := r.URL.Query()["tag"]
+	if !exist || len(tags) == 0 {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusBadRequest})
 		return
 	}
 	var meets []models.Meeting
-	meets, err = h.MeetingUC.FilterTagged(params, tagId)
+	meets, err := h.MeetingUC.FilterTagged(params, tags)
 	if err != nil {
 		hu.WriteError(w, &hu.ErrResponse{RespCode: http.StatusInternalServerError})
 		return
